@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useFavorites } from '../../utils/useFavorites';
 
 export default function DetailScreen({ route, navigation }) {
   const meme = route.params?.meme || {
@@ -23,7 +24,8 @@ export default function DetailScreen({ route, navigation }) {
 
   const [likes, setLikes] = useState(meme.likes || 0);
   const [isLiked, setIsLiked] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
+  const { addFavorite, removeFavorite, isFavorite } = useFavorites();
+  const isSaved = isFavorite(meme.id);
 
   const handleToggleLike = () => {
     if (isLiked) {
@@ -36,8 +38,13 @@ export default function DetailScreen({ route, navigation }) {
   };
 
   const handleToggleSave = () => {
-    setIsSaved((prev) => !prev);
-    Alert.alert('Thông báo', isSaved ? 'Đã xóa khỏi bộ sưu tập!' : 'Đã lưu vào bộ sưu tập yêu thích!');
+    if (isSaved) {
+      removeFavorite(meme.id);
+      Alert.alert('Đã gỡ', 'Meme đã được xóa khỏi Bộ sưu tập.');
+    } else {
+      addFavorite(meme);
+      Alert.alert('Đã lưu! 🎉', 'Meme đã được lưu vào Bộ sưu tập yêu thích!');
+    }
   };
 
   const handleShare = async () => {

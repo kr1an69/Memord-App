@@ -1,15 +1,15 @@
-# Memord - Meme Discovery & Filtering Mobile App 🎭
+# Memord - Meme Discovery Mobile App
 
 > **Môn học:** Lập trình trên thiết bị di động (Mobile Programming)  
 > **Giảng viên hướng dẫn:** Thầy Võ Tấn Toàn - Khoa CNTT, Trường Đại học Nông Lâm TP.HCM  
 > **Đề tài Seminar:** Báo cáo tìm hiểu React Native, Cấu trúc dự án & Demo ứng dụng  
-> **Tên ứng dụng:** Memord (Kết hợp giữa "Meme" và "Board" - Phong cách Pinterest)  
+> **Tên ứng dụng:** Memord (Kết hợp giữa "Meme" và "Lord" - Pinterest Inspired)  
 
 ---
 
 ## 📱 Giới thiệu Ứng dụng (Overview)
 
-**Memord** là một ứng dụng di động Android mang phong cách khám phá hình ảnh tương tự **Pinterest**, nhưng chuyên biệt dành cho cộng đồng yêu thích **Meme hài hước**.
+**Memord** là một ứng dụng di động Android mang phong cách khám phá hình ảnh tương tự **Pinterest**, nhưng chuyên biệt dành cho các bạn yêu thích Memes.
 
 ### Điểm nổi bật:
 * **Khám phá vô tận (Pinterest Grid):** Hiển thị danh sách Meme dưới dạng lưới 2 cột so le bắt mắt, cuộn mượt mà.
@@ -21,13 +21,13 @@
 
 ## 👥 Danh sách Thành viên & Phân công Chức năng
 
-| STT | Họ và Tên | MSSV | Vai trò | Chức năng đảm nhiệm |
-| :---: | :--- | :---: | :---: | :--- |
-| 1 | *(Họ tên bạn)* | *(MSSV)* | **Nhóm trưởng** | **Kiến trúc nền tảng & Điều hướng:** Cấu trúc dự án, Navigation (Tabs & Stack), Tầng API Service & Mock Data, Quản lý Git. |
-| 2 | *(Thành viên 2)* | *(MSSV)* | Thành viên | **Màn hình Khám phá (Home Feed):** Lưới ảnh 2 cột phong cách Pinterest, hiệu ứng Pull-to-Refresh, tải danh sách Meme ban đầu. |
-| 3 | *(Thành viên 3)* | *(MSSV)* | Thành viên | **Màn hình Tìm kiếm & Bộ lọc (Search & Filter):** Thanh tìm kiếm từ khóa, dải tag danh mục, gọi API động và hiển thị kết quả. |
-| 4 | *(Thành viên 4)* | *(MSSV)* | Thành viên | **Màn hình Chi tiết (Meme Detail):** Xem ảnh độ phân giải cao, nút Thả Tim, Lưu vào bộ sưu tập, Chia sẻ hệ thống (Native Share). |
-| 5 | *(Thành viên 5)* | *(MSSV)* | Thành viên | **Bộ sưu tập Cá nhân (Favorites Board):** Quản lý danh sách các Meme đã lưu, thao tác xóa khỏi bộ sưu tập, giao diện Empty State. |
+| STT | Họ và Tên | Vai trò | Chức năng đảm nhiệm |
+| :---: | :--- | :---: | :--- |
+| 1 | *Trần Tuấn Anh* | **Nhóm trưởng** | **Kiến trúc nền tảng & Điều hướng:** Cấu trúc dự án, Navigation (Tabs & Stack), Tầng API Service & Mock Data, Quản lý Git. |
+| 2 | *Phan Thành Đạt* | Thành viên | **Màn hình Khám phá (Home Feed):** Lưới ảnh 2 cột phong cách Pinterest, hiệu ứng Pull-to-Refresh, tải danh sách Meme ban đầu. |
+| 3 | *Vũ Đăng Khoa* | Thành viên | **Màn hình Tìm kiếm & Bộ lọc (Search & Filter):** Thanh tìm kiếm từ khóa, dải tag danh mục, gọi API động và hiển thị kết quả. |
+| 4 | *Trần Văn Đức* | Thành viên | **Màn hình Chi tiết (Meme Detail):** Xem ảnh độ phân giải cao, nút Thả Tim, Lưu vào bộ sưu tập, Chia sẻ hệ thống (Native Share). |
+| 5 | *Trần Minh Hiếu* | Thành viên | **Bộ sưu tập Cá nhân (Favorites Board):** Quản lý danh sách các Meme đã lưu, thao tác xóa khỏi bộ sưu tập, giao diện Empty State. |
 
 ---
 

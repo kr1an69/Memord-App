@@ -50,3 +50,6 @@ yarn-error.*
 # Logs
 *.log
 
+# Markdown docs (only keep README.md)
+*.md
+!README.md

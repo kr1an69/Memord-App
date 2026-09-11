@@ -7,9 +7,9 @@ import {
   TouchableOpacity,
   ScrollView,
   Share,
-  SafeAreaView,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function DetailScreen({ route, navigation }) {

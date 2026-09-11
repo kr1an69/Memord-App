@@ -8,9 +8,9 @@ import {
   FlatList,
   Image,
   ActivityIndicator,
-  SafeAreaView,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { searchMemes } from '../../api/memeApi';
 
 const CATEGORIES = ['Tất cả', 'Programmer', 'Cat', 'Anime', 'Gaming', 'Trending'];

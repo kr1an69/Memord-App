@@ -1,6 +1,6 @@
 /**
- * Dữ liệu Meme mẫu dùng chung cho toàn bộ dự án Memord.
- * Cung cấp dữ liệu offline, phục vụ hiển thị ban đầu và cơ chế fallback khi API lỗi.
+ * Mock data memes
+ * Đề phòng mất wifi hoặc fallback khi API lỗi lúc demo
  */
 
 export const MOCK_MEMES = [

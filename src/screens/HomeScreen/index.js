@@ -8,8 +8,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { fetchTrendingMemes } from '../../api/memeApi';
 
 export default function HomeScreen({ navigation }) {

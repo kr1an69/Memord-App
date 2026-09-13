@@ -3,6 +3,7 @@ import { SUBREDDIT_POOL } from '../constants/subreddits.js';
 
 const BASE_MEME_API = 'https://meme-api.com/gimme';
 
+// ------------------------------- TAnh -----------------------------------
 // Map các category sang subreddit tương ứng trên Reddit để fetch ảnh chuẩn chủ đề
 const SUBREDDIT_MAP = {
   Programmer: 'ProgrammerHumor',
@@ -93,6 +94,7 @@ export const fetchTrendingMemes = async (count = 50) => {
   }
 };
 
+// ------------------------------- Khoa -----------------------------------
 /**
  * Search or filter Meme theo từ khóa và chủ đề cho SearchFilterScreen
  * @param {string} query Từ khóa tìm kiếm

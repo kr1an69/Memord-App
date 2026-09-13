@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,10 +10,14 @@ import {
   Alert,
   ActivityIndicator,
   Dimensions,
+  TextInput,
+  Modal,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { searchMemes } from '../../api/memeApi';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // Import các icon tùy chỉnh từ thư mục assets
 const iconBack = require('../../../assets/back.png');
@@ -23,35 +27,90 @@ const iconSave = require('../../../assets/save.png');
 const iconShare = require('../../../assets/share.png');
 
 export default function DetailScreen({ route, navigation }) {
-  // 1. Nhận dữ liệu meme từ navigation params (hoặc fallback dữ liệu mẫu)
+  // 1. Nhận dữ liệu meme từ navigation params
   const meme = route.params?.meme || {
     id: 'meme_default',
     title: 'Meme Mẫu Memord',
     imageUrl: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80',
     author: 'memord_user',
     likes: 1250,
-    category: 'Trending',
+    category: 'Programmer',
     width: 600,
     height: 600,
   };
 
+  // State quản lý tương tác người dùng
   const [likes, setLikes] = useState(meme.likes || 0);
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
 
-  // Xử lý sự kiện Thả Tim (Like): Đổi icon/màu tim và tăng/giảm 1 like
-  const handleToggleLike = () => {
-    if (isLiked) {
-      setLikes((prev) => Math.max(0, prev - 1));
-      setIsLiked(false);
-    } else {
-      setLikes((prev) => prev + 1);
-      setIsLiked(true);
+  // State quản lý xem ảnh toàn màn hình & phóng to (Fullscreen Lightbox & Zoom)
+  const [isViewerVisible, setIsViewerVisible] = useState(false);
+
+  // State cho phần Backend/API: Meme liên quan (Related Memes)
+  const [relatedMemes, setRelatedMemes] = useState([]);
+  const [loadingRelated, setLoadingRelated] = useState(true);
+
+  // State cho phần Tương tác Bình luận (Comments)
+  const [comments, setComments] = useState([
+    {
+      id: 'cmt_1',
+      user: 'dev_khoa',
+      text: 'Meme này hài thật sự, đúng tâm trạng dev luôn! 😂',
+      time: '10 phút trước',
+    },
+    {
+      id: 'cmt_2',
+      user: 'hieu_tran',
+      text: 'Đã lưu lại để mai gửi vô group chat nhóm haha',
+      time: '25 phút trước',
+    },
+  ]);
+  const [newComment, setNewComment] = useState('');
+
+  // 2. Gọi API lấy danh sách Meme liên quan cùng thể loại (Backend Data Fetching)
+  useEffect(() => {
+    let isMounted = true;
+    const fetchRelated = async () => {
+      setLoadingRelated(true);
+      try {
+        const data = await searchMemes('', meme.category || 'Tất cả');
+        if (isMounted) {
+          const filtered = data.filter((item) => item.id !== meme.id).slice(0, 4);
+          setRelatedMemes(filtered);
+        }
+      } catch (error) {
+        console.error('Lỗi khi fetch meme liên quan:', error);
+      } finally {
+        if (isMounted) {
+          setLoadingRelated(false);
+        }
+      }
+    };
+
+    fetchRelated();
+    return () => {
+      isMounted = false;
+    };
+  }, [meme.id, meme.category]);
+
+  // Xử lý sự kiện Thả Tim (Like): Tối ưu UI và mô phỏng gửi dữ liệu
+  const handleToggleLike = async () => {
+    const nextLiked = !isLiked;
+    const nextLikes = nextLiked ? likes + 1 : Math.max(0, likes - 1);
+
+    setIsLiked(nextLiked);
+    setLikes(nextLikes);
+
+    try {
+      console.log(`[API Log] Đã gửi tương tác Like: Meme ID = ${meme.id}, IsLiked = ${nextLiked}`);
+    } catch (error) {
+      console.warn('Lỗi kết nối khi gửi like:', error);
     }
   };
 
-  // Xử lý sự kiện Lưu vào Bộ sưu tập: Đổi trạng thái icon thành "Đã lưu"
+  // Xử lý sự kiện Lưu vào Bộ sưu tập (Save)
   const handleToggleSave = () => {
     const nextState = !isSaved;
     setIsSaved(nextState);
@@ -63,7 +122,7 @@ export default function DetailScreen({ route, navigation }) {
     }
   };
 
-  // Xử lý sự kiện Chia sẻ (Share) qua native Share dialog
+  // Xử lý sự kiện Chia sẻ (Share) qua Native Share Dialog
   const handleShare = async () => {
     try {
       await Share.share({
@@ -76,7 +135,22 @@ export default function DetailScreen({ route, navigation }) {
     }
   };
 
-  // Tính chiều cao ảnh theo tỷ lệ gốc nếu có
+  // Xử lý sự kiện Gửi bình luận mới
+  const handleAddComment = () => {
+    if (!newComment.trim()) return;
+
+    const newCmtObj = {
+      id: `cmt_${Date.now()}`,
+      user: 'duc_tran',
+      text: newComment.trim(),
+      time: 'Vừa xong',
+    };
+
+    setComments([newCmtObj, ...comments]);
+    setNewComment('');
+  };
+
+  // Tính chiều cao ảnh theo tỷ lệ gốc
   const imageAspectHeight =
     meme.width && meme.height
       ? Math.min(Math.round((SCREEN_WIDTH * meme.height) / meme.width), 460)
@@ -86,7 +160,6 @@ export default function DetailScreen({ route, navigation }) {
     <SafeAreaView style={styles.safeArea}>
       {/* 1. Thanh Header Điều hướng */}
       <View style={styles.header}>
-        {/* Nút Quay lại (Back) dùng assets/back.png */}
         <TouchableOpacity
           style={styles.headerBtn}
           activeOpacity={0.7}
@@ -99,7 +172,6 @@ export default function DetailScreen({ route, navigation }) {
           {meme.title}
         </Text>
 
-        {/* Nút Chia sẻ ở Header dùng assets/share.png */}
         <TouchableOpacity
           style={styles.headerBtn}
           activeOpacity={0.7}
@@ -113,8 +185,12 @@ export default function DetailScreen({ route, navigation }) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* 2. Khung hiển thị ảnh Meme to, rõ nét */}
-        <View style={[styles.imageCard, { height: imageAspectHeight }]}>
+        {/* 2. Khung hiển thị ảnh Meme (Chạm vào để mở Fullscreen Zoom) */}
+        <TouchableOpacity
+          style={[styles.imageCard, { height: imageAspectHeight }]}
+          activeOpacity={0.95}
+          onPress={() => setIsViewerVisible(true)}
+        >
           {imageLoading && (
             <View style={styles.imageLoader}>
               <ActivityIndicator size="small" color="#FF4500" />
@@ -127,7 +203,12 @@ export default function DetailScreen({ route, navigation }) {
             onLoadStart={() => setImageLoading(true)}
             onLoadEnd={() => setImageLoading(false)}
           />
-        </View>
+
+          {/* Icon kính lúp tối giản ở góc ảnh */}
+          <View style={styles.zoomHintBadge}>
+            <Text style={styles.zoomHintIcon}>🔍</Text>
+          </View>
+        </TouchableOpacity>
 
         {/* 3. Thẻ Thông tin chi tiết & Các nút hành động */}
         <View style={styles.detailCard}>
@@ -145,7 +226,7 @@ export default function DetailScreen({ route, navigation }) {
           {/* Tiêu đề Meme */}
           <Text style={styles.memeTitle}>{meme.title}</Text>
 
-          {/* Số lượt thích */}
+          {/* Thống kê số lượt thích */}
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
               <Image
@@ -170,7 +251,7 @@ export default function DetailScreen({ route, navigation }) {
 
           {/* Hàng nút bấm Hành động (Like, Save, Share) */}
           <View style={styles.actionsRow}>
-            {/* Nút Thả Tim (Like): love.png (đỏ) vs love1.png (đen/outline) */}
+            {/* Nút Thích */}
             <TouchableOpacity
               style={[styles.actionBtn, isLiked && styles.likeBtnActive]}
               activeOpacity={0.8}
@@ -189,7 +270,7 @@ export default function DetailScreen({ route, navigation }) {
               </Text>
             </TouchableOpacity>
 
-            {/* Nút Lưu vào Bộ sưu tập (Save): save.png */}
+            {/* Nút Lưu */}
             <TouchableOpacity
               style={[styles.actionBtn, isSaved && styles.saveBtnActive]}
               activeOpacity={0.8}
@@ -208,7 +289,7 @@ export default function DetailScreen({ route, navigation }) {
               </Text>
             </TouchableOpacity>
 
-            {/* Nút Chia sẻ (Share): share.png */}
+            {/* Nút Chia sẻ */}
             <TouchableOpacity
               style={styles.shareBtn}
               activeOpacity={0.8}
@@ -222,8 +303,124 @@ export default function DetailScreen({ route, navigation }) {
               <Text style={styles.shareBtnText}>Chia sẻ</Text>
             </TouchableOpacity>
           </View>
+
+          {/* 4. Khu vực Bình luận & Thảo luận (Comments Section) */}
+          <View style={styles.sectionDivider} />
+          <View style={styles.commentsHeader}>
+            <Text style={styles.sectionTitle}>💬 Bình luận ({comments.length})</Text>
+          </View>
+
+          {/* Khung nhập bình luận */}
+          <View style={styles.commentInputBox}>
+            <TextInput
+              style={styles.commentInput}
+              placeholder="Viết bình luận của bạn..."
+              placeholderTextColor="#64748B"
+              value={newComment}
+              onChangeText={setNewComment}
+              returnKeyType="send"
+              onSubmitEditing={handleAddComment}
+            />
+            <TouchableOpacity
+              style={[styles.sendBtn, !newComment.trim() && styles.sendBtnDisabled]}
+              onPress={handleAddComment}
+              disabled={!newComment.trim()}
+            >
+              <Text style={styles.sendBtnText}>Gửi</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Danh sách bình luận */}
+          <View style={styles.commentList}>
+            {comments.map((item) => (
+              <View key={item.id} style={styles.commentItem}>
+                <View style={styles.commentTopRow}>
+                  <Text style={styles.commentUser}>@{item.user}</Text>
+                  <Text style={styles.commentTime}>{item.time}</Text>
+                </View>
+                <Text style={styles.commentText}>{item.text}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* 5. Khu vực Gọi API: Meme liên quan cùng thể loại (Related Memes) */}
+          <View style={styles.sectionDivider} />
+          <View style={styles.relatedHeader}>
+            <Text style={styles.sectionTitle}>✨ Meme cùng thể loại #{meme.category}</Text>
+          </View>
+
+          {loadingRelated ? (
+            <View style={styles.relatedLoader}>
+              <ActivityIndicator size="small" color="#38BDF8" />
+              <Text style={styles.loaderText}>Đang tải đề xuất liên quan...</Text>
+            </View>
+          ) : relatedMemes.length === 0 ? (
+            <Text style={styles.emptyRelatedText}>Không có meme liên quan nào khác.</Text>
+          ) : (
+            <View style={styles.relatedGrid}>
+              {relatedMemes.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.relatedCard}
+                  activeOpacity={0.8}
+                  onPress={() => navigation.push('DetailScreen', { meme: item })}
+                >
+                  <Image source={{ uri: item.imageUrl }} style={styles.relatedImage} resizeMode="cover" />
+                  <View style={styles.relatedInfo}>
+                    <Text style={styles.relatedTitle} numberOfLines={1}>
+                      {item.title}
+                    </Text>
+                    <Text style={styles.relatedLikes}>❤️ {item.likes}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
       </ScrollView>
+
+      {/* 6. Modal Xem ảnh Toàn Màn Hình & Phóng To Thu Nhỏ (Fullscreen Lightbox) */}
+      <Modal
+        visible={isViewerVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setIsViewerVisible(false)}
+      >
+        <StatusBar hidden={isViewerVisible} />
+        <View style={styles.modalBackdrop}>
+          {/* Header của Modal */}
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle} numberOfLines={1}>
+              {meme.title}
+            </Text>
+            {/* Nút đóng tròn tối giản chỉ chứa dấu ✕ */}
+            <TouchableOpacity
+              style={styles.closeModalBtn}
+              activeOpacity={0.8}
+              onPress={() => setIsViewerVisible(false)}
+            >
+              <Text style={styles.closeModalText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* ScrollView hỗ trợ Pinch-to-Zoom 2 ngón tay */}
+          <ScrollView
+            style={styles.zoomScrollView}
+            contentContainerStyle={styles.zoomContentContainer}
+            minimumZoomScale={1}
+            maximumZoomScale={4}
+            showsHorizontalScrollIndicator={false}
+            showsVerticalScrollIndicator={false}
+            centerContent={true}
+          >
+            <Image
+              source={{ uri: meme.imageUrl }}
+              style={styles.modalFullImage}
+              resizeMode="contain"
+            />
+          </ScrollView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -281,6 +478,22 @@ const styles = StyleSheet.create({
   memeImage: {
     width: '100%',
     height: '100%',
+  },
+  zoomHintBadge: {
+    position: 'absolute',
+    bottom: 20,
+    right: 14,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  zoomHintIcon: {
+    fontSize: 14,
   },
   detailCard: {
     backgroundColor: '#0F172A',
@@ -412,5 +625,181 @@ const styles = StyleSheet.create({
     color: '#F8FAFC',
     fontWeight: '600',
     fontSize: 13,
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: '#1E293B',
+    marginVertical: 22,
+  },
+  commentsHeader: {
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#F8FAFC',
+  },
+  commentInputBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  commentInput: {
+    flex: 1,
+    height: 42,
+    backgroundColor: '#1E293B',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    color: '#F8FAFC',
+    fontSize: 13,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  sendBtn: {
+    height: 42,
+    paddingHorizontal: 16,
+    backgroundColor: '#38BDF8',
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sendBtnDisabled: {
+    backgroundColor: '#334155',
+    opacity: 0.6,
+  },
+  sendBtnText: {
+    color: '#0B132B',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  commentList: {
+    gap: 10,
+  },
+  commentItem: {
+    backgroundColor: '#1E293B',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  commentTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  commentUser: {
+    color: '#38BDF8',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  commentTime: {
+    color: '#64748B',
+    fontSize: 11,
+  },
+  commentText: {
+    color: '#E2E8F0',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  relatedHeader: {
+    marginBottom: 14,
+  },
+  relatedLoader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+  },
+  loaderText: {
+    color: '#94A3B8',
+    fontSize: 13,
+  },
+  emptyRelatedText: {
+    color: '#64748B',
+    fontSize: 13,
+    fontStyle: 'italic',
+  },
+  relatedGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  relatedCard: {
+    width: (SCREEN_WIDTH - 40 - 12) / 2,
+    backgroundColor: '#1E293B',
+    borderRadius: 10,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  relatedImage: {
+    width: '100%',
+    height: 120,
+    backgroundColor: '#020617',
+  },
+  relatedInfo: {
+    padding: 8,
+  },
+  relatedTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#F1F5F9',
+    marginBottom: 4,
+  },
+  relatedLikes: {
+    fontSize: 11,
+    color: '#FDA4AF',
+    fontWeight: '500',
+  },
+  /* Styles tối giản cho Fullscreen Lightbox */
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 48,
+    paddingBottom: 14,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    zIndex: 10,
+  },
+  modalTitle: {
+    flex: 1,
+    color: '#F8FAFC',
+    fontSize: 14,
+    fontWeight: '600',
+    marginRight: 12,
+  },
+  closeModalBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#1E293B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  closeModalText: {
+    color: '#F8FAFC',
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 18,
+  },
+  zoomScrollView: {
+    flex: 1,
+  },
+  zoomContentContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalFullImage: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT * 0.85,
   },
 });

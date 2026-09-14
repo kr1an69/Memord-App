@@ -17,12 +17,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// Import các icon tùy chỉnh từ thư mục assets
-const iconBack = require('../../../assets/back.png');
-const iconLoveRed = require('../../../assets/love.png');
-const iconLoveBlack = require('../../../assets/love1.png');
-const iconSave = require('../../../assets/save.png');
-const iconShare = require('../../../assets/share.png');
+// Import các icon tùy chỉnh từ thư mục images nội bộ
+const iconBack = require('./images/back.png');
+const iconLoveRed = require('./images/love.png');
+const iconLoveBlack = require('./images/love1.png');
+const iconSave = require('./images/save.png');
+const iconShare = require('./images/share.png');
 
 export default function DetailScreen({ route, navigation }) {
   // 1. Nhận dữ liệu meme từ navigation params với fallback an toàn

@@ -17,6 +17,22 @@ import { searchMemes } from '../../api/memeApi'; // Đảm bảo import đúng �
 // Giữ nguyên danh mục theo code mẫu của Leader
 const CATEGORIES = ['Tất cả', 'Programmer', 'Cat', 'Anime', 'Gaming', 'Trending'];
 
+// Các gợi ý từ khóa phổ biến đa dạng chủ đề để bấm tìm nhanh
+const QUICK_SUGGESTIONS = [
+  { label: '🐶 Con chó', query: 'con chó' },
+  { label: '🐱 Con mèo', query: 'con mèo' },
+  { label: '💻 Lập trình', query: 'lập trình' },
+  { label: '🎮 Chơi game', query: 'chơi game' },
+  { label: '🦸 Siêu nhân', query: 'siêu nhân' },
+  { label: '⚡ Pokémon', query: 'pokemon' },
+  { label: '🦸‍♂️ Marvel', query: 'marvel' },
+  { label: '💪 Gym', query: 'gym' },
+  { label: '📱 iPhone', query: 'iphone' },
+  { label: '🔫 Súng', query: 'súng' },
+  { label: '💻 Laptop', query: 'laptop' },
+  { label: '🚗 Xe hơi', query: 'xe' },
+];
+
 export default function SearchFilterScreen({ navigation }) {
   // --- PHẦN 1: GIỮ NGUYÊN HOÀN TOÀN CẤU TRÚC LOGIC CỦA LEADER ---
   const [keyword, setKeyword] = useState('');
@@ -28,12 +44,47 @@ export default function SearchFilterScreen({ navigation }) {
     Keyboard.dismiss();
     setLoading(true);
     try {
-      const data = await searchMemes(text, tag);
+      const data = await searchMemes(text, tag, 1);
       setResults(data || []);
     } catch (error) {
       console.error('Lỗi tìm kiếm:', error);
     } finally {
       setLoading(false);
+    }
+  }, [selectedTag, keyword]);
+
+  // Tải thêm ảnh vô hạn khi người dùng cuộn tới cuối danh sách (Chỉ lấy bài 100% MỚI, KHÔNG LẶP LẠI)
+  const handleLoadMore = async () => {
+    if (loadingMore || loading || results.length === 0) return;
+    setLoadingMore(true);
+    const nextPage = pageRef.current + 1;
+    try {
+      const categoryToSearch = keyword.trim() !== '' ? 'Tất cả' : selectedTag;
+      const moreMemes = await searchMemes(keyword, categoryToSearch, nextPage);
+      if (moreMemes && moreMemes.length > 0) {
+        pageRef.current = nextPage;
+        setResults((prev) => {
+          // Kiểm tra tập hợp các ID và Link ảnh đã có trên màn hình
+          const existingIds = new Set(prev.map((m) => String(m.id)));
+          const existingUrls = new Set(prev.map((m) => m.imageUrl));
+          // Chỉ giữ lại những meme chưa từng xuất hiện (Không trùng ID & Không trùng Link ảnh)
+          const strictlyNew = moreMemes.filter((m) => {
+            if (!m || !m.id || !m.imageUrl) return false;
+            const idStr = String(m.id);
+            if (existingIds.has(idStr) || existingUrls.has(m.imageUrl)) return false;
+            return true;
+          });
+          if (strictlyNew.length > 0) {
+            return [...prev, ...strictlyNew];
+          }
+          // Nếu tất cả bài trong trang này đã xuất hiện rồi, giữ nguyên danh sách (tuyệt đối không lặp bài cũ)
+          return prev;
+        });
+      }
+    } catch (err) {
+      console.warn('[SearchFilterScreen] Lỗi tải thêm ảnh:', err);
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -116,7 +167,20 @@ export default function SearchFilterScreen({ navigation }) {
         </View>
       ) : results.length === 0 ? (
         <View style={styles.center}>
-          <Text style={styles.emptyText}>Không tìm thấy meme phù hợp 😿</Text>
+          <Text style={styles.emptyEmoji}>😿</Text>
+          <Text style={styles.emptyTitle}>Chưa tìm thấy meme vừa ý?</Text>
+          <Text style={styles.emptySub}>Thử tìm kiếm với các từ khóa gợi ý bên dưới:</Text>
+          <View style={styles.suggestionsContainer}>
+            {QUICK_SUGGESTIONS.map((item) => (
+              <TouchableOpacity
+                key={item.query}
+                style={styles.suggestionChip}
+                onPress={() => handleSelectSuggestion(item.query)}
+              >
+                <Text style={styles.suggestionChipText}>{item.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       ) : (
         <FlatList

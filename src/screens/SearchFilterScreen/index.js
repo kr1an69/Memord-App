@@ -13,8 +13,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { searchMemes } from '../../api/memeApi';
+
 // Danh mục chuẩn theo quy ước dự án
 const CATEGORIES = ['Tất cả', 'Programmer', 'Cat', 'Anime', 'Gaming', 'Trending'];
+
 // Các gợi ý từ khóa phổ biến đa dạng chủ đề để bấm tìm nhanh
 const QUICK_SUGGESTIONS = [
   { label: '🐶 Con chó', query: 'con chó' },
@@ -30,6 +32,7 @@ const QUICK_SUGGESTIONS = [
   { label: '💻 Laptop', query: 'laptop' },
   { label: '🚗 Xe hơi', query: 'xe' },
 ];
+
 export default function SearchFilterScreen({ navigation }) {
   const [keyword, setKeyword] = useState('');
   const [selectedTag, setSelectedTag] = useState('Tất cả');
@@ -38,24 +41,14 @@ export default function SearchFilterScreen({ navigation }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const searchTimeoutRef = useRef(null);
   const pageRef = useRef(1);
+
   // Hàm thực hiện tìm kiếm chính (Reset lại về trang 1)
   const handleSearch = useCallback(async (tag = selectedTag, text = keyword) => {
     setLoading(true);
     pageRef.current = 1;
     try {
       const data = await searchMemes(text, tag, 1);
-      // Lọc trùng tuyệt đối theo ID và URL ảnh ngay trong lần tải đầu
-      const seenIds = new Set();
-      const seenUrls = new Set();
-      const uniqueData = (data || []).filter((m) => {
-        if (!m || !m.id || !m.imageUrl) return false;
-        const idStr = String(m.id);
-        if (seenIds.has(idStr) || seenUrls.has(m.imageUrl)) return false;
-        seenIds.add(idStr);
-        seenUrls.add(m.imageUrl);
-        return true;
-      });
-      setResults(uniqueData);
+      setResults(data || []);
     } catch (error) {
       console.error('[SearchFilterScreen] Lỗi tìm kiếm:', error);
       setResults([]);
@@ -63,6 +56,7 @@ export default function SearchFilterScreen({ navigation }) {
       setLoading(false);
     }
   }, [selectedTag, keyword]);
+
   // Tải thêm ảnh vô hạn khi người dùng cuộn tới cuối danh sách (Chỉ lấy bài 100% MỚI, KHÔNG LẶP LẠI)
   const handleLoadMore = async () => {
     if (loadingMore || loading || results.length === 0) return;
@@ -97,12 +91,14 @@ export default function SearchFilterScreen({ navigation }) {
       setLoadingMore(false);
     }
   };
+
   // Tự động tìm kiếm khi đổi Tag danh mục (khi chưa nhập từ khóa)
   useEffect(() => {
     if (keyword.trim() === '') {
       handleSearch(selectedTag, '');
     }
   }, [selectedTag]);
+
   // Debounce tìm kiếm tự động khi gõ chữ (sau 350ms)
   const handleTextChange = (text) => {
     setKeyword(text);
@@ -115,6 +111,7 @@ export default function SearchFilterScreen({ navigation }) {
       handleSearch(categoryToSearch, text);
     }, 350);
   };
+
   // Nút submit tìm kiếm (khi bấm Nút Tìm hoặc Enter)
   const onSubmitSearch = () => {
     Keyboard.dismiss();
@@ -122,16 +119,19 @@ export default function SearchFilterScreen({ navigation }) {
     const categoryToSearch = keyword.trim() !== '' ? 'Tất cả' : selectedTag;
     handleSearch(categoryToSearch, keyword);
   };
+
   // Nút xóa sạch từ khóa (Clear X)
   const handleClearKeyword = () => {
     setKeyword('');
     handleSearch(selectedTag, '');
   };
+
   // Chọn từ khóa gợi ý nhanh
   const handleSelectSuggestion = (query) => {
     setKeyword(query);
     handleSearch('Tất cả', query);
   };
+
   // Render thẻ Meme dạng 2 cột Pinterest
   const renderItem = ({ item }) => (
     <TouchableOpacity
@@ -155,6 +155,7 @@ export default function SearchFilterScreen({ navigation }) {
       </View>
     </TouchableOpacity>
   );
+
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* 1. Thanh tìm kiếm với nút Xóa & Nút Tìm */}
@@ -181,6 +182,7 @@ export default function SearchFilterScreen({ navigation }) {
           <Text style={styles.searchBtnText}>Tìm</Text>
         </TouchableOpacity>
       </View>
+
       {/* 2. Dải Tag danh mục nằm ngang (Chỉ hiện khi CHƯA gõ từ khóa tìm kiếm) */}
       {keyword.trim() === '' && (
         <View style={styles.tagsWrapper}>
@@ -207,6 +209,7 @@ export default function SearchFilterScreen({ navigation }) {
           </ScrollView>
         </View>
       )}
+
       {/* 3. Danh sách kết quả hoặc Trạng thái Loading / Empty State */}
       {loading ? (
         <View style={styles.center}>
@@ -253,6 +256,7 @@ export default function SearchFilterScreen({ navigation }) {
     </SafeAreaView>
   );
 }
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,

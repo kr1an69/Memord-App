@@ -22,7 +22,7 @@ const shuffleArray = (array) => {
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
-}
+};
 
 /**
  * Normalize dữ liệu trả về từ Meme-API hoặc Reddit sang đúng schema của Memord

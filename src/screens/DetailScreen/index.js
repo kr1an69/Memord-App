@@ -135,21 +135,6 @@ export default function DetailScreen({ route, navigation }) {
     }
   };
 
-  // Xử lý sự kiện Gửi bình luận mới
-  const handleAddComment = () => {
-    if (!newComment.trim()) return;
-
-    const newCmtObj = {
-      id: `cmt_${Date.now()}`,
-      user: 'duc_tran',
-      text: newComment.trim(),
-      time: 'Vừa xong',
-    };
-
-    setComments([newCmtObj, ...comments]);
-    setNewComment('');
-  };
-
   // Tính chiều cao ảnh theo tỷ lệ gốc
   const imageAspectHeight =
     meme.width && meme.height

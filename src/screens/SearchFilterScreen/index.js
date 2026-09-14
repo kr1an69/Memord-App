@@ -17,13 +17,20 @@ import { searchMemes } from '../../api/memeApi';
 // Danh mục chuẩn theo quy ước dự án
 const CATEGORIES = ['Tất cả', 'Programmer', 'Cat', 'Anime', 'Gaming', 'Trending'];
 
-// Các gợi ý từ khóa phổ biến để bấm tìm nhanh
+// Các gợi ý từ khóa phổ biến đa dạng chủ đề để bấm tìm nhanh
 const QUICK_SUGGESTIONS = [
-  { label: '🐱 Mèo', query: 'cat' },
-  { label: '💻 Code', query: 'code' },
-  { label: '🎮 Gaming', query: 'game' },
-  { label: '🌸 Anime', query: 'anime' },
-  { label: '🐛 Fix Bug', query: 'bug' },
+  { label: '🐶 Con chó', query: 'con chó' },
+  { label: '🐱 Con mèo', query: 'con mèo' },
+  { label: '💻 Lập trình', query: 'lập trình' },
+  { label: '🎮 Chơi game', query: 'chơi game' },
+  { label: '🦸 Siêu nhân', query: 'siêu nhân' },
+  { label: '⚡ Pokémon', query: 'pokemon' },
+  { label: '🦸‍♂️ Marvel', query: 'marvel' },
+  { label: '💪 Gym', query: 'gym' },
+  { label: '📱 iPhone', query: 'iphone' },
+  { label: '🔫 Súng', query: 'súng' },
+  { label: '💻 Laptop', query: 'laptop' },
+  { label: '🚗 Xe hơi', query: 'xe' },
 ];
 
 export default function SearchFilterScreen({ navigation }) {
@@ -31,13 +38,16 @@ export default function SearchFilterScreen({ navigation }) {
   const [selectedTag, setSelectedTag] = useState('Tất cả');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const searchTimeoutRef = useRef(null);
+  const pageRef = useRef(1);
 
-  // Hàm thực hiện tìm kiếm chính
+  // Hàm thực hiện tìm kiếm chính (Reset lại về trang 1)
   const handleSearch = useCallback(async (tag = selectedTag, text = keyword) => {
     setLoading(true);
+    pageRef.current = 1;
     try {
-      const data = await searchMemes(text, tag);
+      const data = await searchMemes(text, tag, 1);
       setResults(data || []);
     } catch (error) {
       console.error('[SearchFilterScreen] Lỗi tìm kiếm:', error);
@@ -47,9 +57,46 @@ export default function SearchFilterScreen({ navigation }) {
     }
   }, [selectedTag, keyword]);
 
-  // Tự động tìm kiếm khi đổi Tag danh mục
+  // Tải thêm ảnh vô hạn khi người dùng cuộn tới cuối danh sách (Chỉ lấy bài 100% MỚI, KHÔNG LẶP LẠI)
+  const handleLoadMore = async () => {
+    if (loadingMore || loading || results.length === 0) return;
+    setLoadingMore(true);
+    const nextPage = pageRef.current + 1;
+    try {
+      const categoryToSearch = keyword.trim() !== '' ? 'Tất cả' : selectedTag;
+      const moreMemes = await searchMemes(keyword, categoryToSearch, nextPage);
+      if (moreMemes && moreMemes.length > 0) {
+        pageRef.current = nextPage;
+        setResults((prev) => {
+          // Kiểm tra tập hợp các ID và Link ảnh đã có trên màn hình
+          const existingIds = new Set(prev.map((m) => String(m.id)));
+          const existingUrls = new Set(prev.map((m) => m.imageUrl));
+          // Chỉ giữ lại những meme chưa từng xuất hiện (Không trùng ID & Không trùng Link ảnh)
+          const strictlyNew = moreMemes.filter((m) => {
+            if (!m || !m.id || !m.imageUrl) return false;
+            const idStr = String(m.id);
+            if (existingIds.has(idStr) || existingUrls.has(m.imageUrl)) return false;
+            return true;
+          });
+          if (strictlyNew.length > 0) {
+            return [...prev, ...strictlyNew];
+          }
+          // Nếu tất cả bài trong trang này đã xuất hiện rồi, giữ nguyên danh sách (tuyệt đối không lặp bài cũ)
+          return prev;
+        });
+      }
+    } catch (err) {
+      console.warn('[SearchFilterScreen] Lỗi tải thêm ảnh:', err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  // Tự động tìm kiếm khi đổi Tag danh mục (khi chưa nhập từ khóa)
   useEffect(() => {
-    handleSearch(selectedTag, keyword);
+    if (keyword.trim() === '') {
+      handleSearch(selectedTag, '');
+    }
   }, [selectedTag]);
 
   // Debounce tìm kiếm tự động khi gõ chữ (sau 350ms)
@@ -59,7 +106,9 @@ export default function SearchFilterScreen({ navigation }) {
       clearTimeout(searchTimeoutRef.current);
     }
     searchTimeoutRef.current = setTimeout(() => {
-      handleSearch(selectedTag, text);
+      // Khi gõ từ khóa: Ẩn Filter và tìm tự do trên tất cả danh mục ('Tất cả')
+      const categoryToSearch = text.trim() !== '' ? 'Tất cả' : selectedTag;
+      handleSearch(categoryToSearch, text);
     }, 350);
   };
 
@@ -67,7 +116,8 @@ export default function SearchFilterScreen({ navigation }) {
   const onSubmitSearch = () => {
     Keyboard.dismiss();
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    handleSearch(selectedTag, keyword);
+    const categoryToSearch = keyword.trim() !== '' ? 'Tất cả' : selectedTag;
+    handleSearch(categoryToSearch, keyword);
   };
 
   // Nút xóa sạch từ khóa (Clear X)
@@ -79,7 +129,7 @@ export default function SearchFilterScreen({ navigation }) {
   // Chọn từ khóa gợi ý nhanh
   const handleSelectSuggestion = (query) => {
     setKeyword(query);
-    handleSearch(selectedTag, query);
+    handleSearch('Tất cả', query);
   };
 
   // Render thẻ Meme dạng 2 cột Pinterest
@@ -114,7 +164,7 @@ export default function SearchFilterScreen({ navigation }) {
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
             style={styles.input}
-            placeholder="Tìm theo từ khóa (Mèo, Code, Bug, Anime)..."
+            placeholder="Tìm kiếm meme..."
             placeholderTextColor="#64748B"
             value={keyword}
             onChangeText={handleTextChange}
@@ -133,41 +183,34 @@ export default function SearchFilterScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* 2. Dải Tag danh mục nằm ngang */}
-      <View style={styles.tagsWrapper}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tagsContainer}
-        >
-          {CATEGORIES.map((cat) => {
-            const isActive = selectedTag === cat;
-            return (
-              <TouchableOpacity
-                key={cat}
-                style={[styles.tagPill, isActive && styles.tagPillActive]}
-                onPress={() => setSelectedTag(cat)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.tagText, isActive && styles.tagTextActive]}>
-                  {cat}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      {/* 3. Header thống kê số lượng kết quả */}
-      {!loading && results.length > 0 && (
-        <View style={styles.resultHeader}>
-          <Text style={styles.resultHeaderCount}>
-            Tìm thấy <Text style={styles.countHighlight}>{results.length}</Text> meme phù hợp
-          </Text>
+      {/* 2. Dải Tag danh mục nằm ngang (Chỉ hiện khi CHƯA gõ từ khóa tìm kiếm) */}
+      {keyword.trim() === '' && (
+        <View style={styles.tagsWrapper}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tagsContainer}
+          >
+            {CATEGORIES.map((cat) => {
+              const isActive = selectedTag === cat;
+              return (
+                <TouchableOpacity
+                  key={cat}
+                  style={[styles.tagPill, isActive && styles.tagPillActive]}
+                  onPress={() => setSelectedTag(cat)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.tagText, isActive && styles.tagTextActive]}>
+                    {cat}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
         </View>
       )}
 
-      {/* 4. Danh sách kết quả hoặc Trạng thái Loading / Empty State */}
+      {/* 3. Danh sách kết quả hoặc Trạng thái Loading / Empty State */}
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#3B82F6" />
@@ -178,7 +221,6 @@ export default function SearchFilterScreen({ navigation }) {
           <Text style={styles.emptyEmoji}>😿</Text>
           <Text style={styles.emptyTitle}>Chưa tìm thấy meme vừa ý?</Text>
           <Text style={styles.emptySub}>Thử tìm kiếm với các từ khóa gợi ý bên dưới:</Text>
-
           <View style={styles.suggestionsContainer}>
             {QUICK_SUGGESTIONS.map((item) => (
               <TouchableOpacity
@@ -200,6 +242,15 @@ export default function SearchFilterScreen({ navigation }) {
           columnWrapperStyle={styles.rowWrapper}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={{ paddingVertical: 16, alignItems: 'center' }}>
+                <ActivityIndicator size="small" color="#3B82F6" />
+              </View>
+            ) : null
+          }
         />
       )}
     </SafeAreaView>
@@ -288,18 +339,6 @@ const styles = StyleSheet.create({
   },
   tagTextActive: {
     color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  resultHeader: {
-    paddingHorizontal: 16,
-    marginBottom: 8,
-  },
-  resultHeaderCount: {
-    color: '#94A3B8',
-    fontSize: 13,
-  },
-  countHighlight: {
-    color: '#38BDF8',
     fontWeight: '700',
   },
   center: {

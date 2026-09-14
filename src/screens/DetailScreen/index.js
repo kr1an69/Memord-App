@@ -14,6 +14,8 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { useFavorites } from '../../utils/useFavorites';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -40,20 +42,13 @@ export default function DetailScreen({ route, navigation }) {
   // State quản lý tương tác người dùng
   const [likes, setLikes] = useState(Number(meme.likes) || 0);
   const [isLiked, setIsLiked] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
-  const [imageLoading, setImageLoading] = useState(true);
+const [likes, setLikes] = useState(meme.likes || 0);
+const [isLiked, setIsLiked] = useState(false);
 
-  // State xem ảnh toàn màn hình & phóng to (Fullscreen Lightbox)
-  const [isViewerVisible, setIsViewerVisible] = useState(false);
-
-  // Hàm hiển thị thông báo tương thích cả Web và Mobile
-  const showToast = (title, message) => {
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      window.alert(`${title}\n${message}`);
-    } else {
-      Alert.alert(title, message);
-    }
-  };
+// Thay state cục bộ cho "saved" bằng hook dùng chung
+const { addFavorite, removeFavorite, isFavorite } = useFavorites();
+// guard nếu meme.id có thể undefined
+const isSaved = meme && meme.id ? isFavorite(meme.id) : false;
 
   // Xử lý sự kiện Thả Tim (Like): Đổi màu tim và tăng/giảm 1 like
   const handleToggleLike = () => {
@@ -67,16 +62,15 @@ export default function DetailScreen({ route, navigation }) {
   };
 
   // Xử lý sự kiện Lưu vào Bộ sưu tập: Đổi trạng thái icon thành "Đã lưu"
-  const handleToggleSave = () => {
-    const nextState = !isSaved;
-    setIsSaved(nextState);
-
-    if (nextState) {
-      showToast('Bộ sưu tập', 'Đã lưu meme vào bộ sưu tập yêu thích! 🎉');
-    } else {
-      showToast('Bộ sưu tập', 'Đã gỡ meme khỏi bộ sưu tập yêu thích.');
-    }
-  };
+const handleToggleSave = () => {
+  if (isSaved) {
+    removeFavorite(meme.id);
+    Alert.alert('Đã gỡ', 'Meme đã được xóa khỏi Bộ sưu tập.');
+  } else {
+    addFavorite(meme);
+    Alert.alert('Đã lưu! 🎉', 'Meme đã được lưu vào Bộ sưu tập yêu thích!');
+  }
+};
 
   // Xử lý sự kiện Chia sẻ (Share) qua Native Share Dialog
   const handleShare = async () => {

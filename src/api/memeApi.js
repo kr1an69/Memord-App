@@ -102,7 +102,7 @@ const SYNONYM_MAP = {
   code: ['code', 'programmer', 'dev', 'bug', 'lập trình', 'client', 'boss', 'review', 'senior_dev', 'bug_hunter', 'code_architect', 'ui_ux_ninja'],
   dev: ['code', 'programmer', 'dev', 'bug', 'lập trình', 'senior_dev', 'bug_hunter', 'code_architect'],
   bug: ['bug', 'fix 1 bug', 'code', 'dev', 'lập trình', 'bug_hunter'],
-  lập trình: ['code', 'programmer', 'dev', 'bug', 'lập trình', 'senior_dev'],
+  'lập trình': ['code', 'programmer', 'dev', 'bug', 'lập trình', 'senior_dev'],
   programmer: ['code', 'programmer', 'dev', 'bug', 'lập trình', 'senior_dev', 'code_architect'],
   anime: ['anime', 'wibu', 'otaku', 'gacha', 'ssr', 'main anime', 'otaku_king', 'anime_fan99'],
   game: ['game', 'gaming', 'chơi game', 'gánh team', 'ranked', 'pro_gamer', 'ranked_warrior'],

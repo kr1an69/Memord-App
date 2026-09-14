@@ -80,7 +80,7 @@ export default function DetailScreen({ route, navigation }) {
 
   // Xử lý sự kiện Chia sẻ (Share) qua Native Share Dialog
   const handleShare = async () => {
-    const shareMessage = `Xem meme "${meme.title}" này trên Memord nhé:\n${meme.imageUrl}`;
+    const shareMessage = `Xem meme "${meme.title}" này nhé:\n${meme.imageUrl}`;
     try {
       if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.share) {
         await navigator.share({

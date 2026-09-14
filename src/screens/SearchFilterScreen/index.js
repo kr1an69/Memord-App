@@ -9,23 +9,27 @@ import {
   Image,
   ActivityIndicator,
   ScrollView,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { searchMemes } from '../../api/memeApi';
+import { searchMemes } from '../../api/memeApi'; // Đảm bảo import đúng đường dẫn API
 
+// Giữ nguyên danh mục theo code mẫu của Leader
 const CATEGORIES = ['Tất cả', 'Programmer', 'Cat', 'Anime', 'Gaming', 'Trending'];
 
 export default function SearchFilterScreen({ navigation }) {
+  // --- PHẦN 1: GIỮ NGUYÊN HOÀN TOÀN CẤU TRÚC LOGIC CỦA LEADER ---
   const [keyword, setKeyword] = useState('');
   const [selectedTag, setSelectedTag] = useState('Tất cả');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const handleSearch = async (tag = selectedTag, text = keyword) => {
+    Keyboard.dismiss();
     setLoading(true);
     try {
       const data = await searchMemes(text, tag);
-      setResults(data);
+      setResults(data || []);
     } catch (error) {
       console.error('Lỗi tìm kiếm:', error);
     } finally {
@@ -37,20 +41,26 @@ export default function SearchFilterScreen({ navigation }) {
     handleSearch(selectedTag, keyword);
   }, [selectedTag]);
 
+  // --- PHẦN 2: TÙY CHỈNH UI (SỬ DỤNG LƯỚI 2 CỘT PINTEREST + DARK MODE) ---
   const renderItem = ({ item }) => (
     <TouchableOpacity
-      style={styles.itemRow}
-      activeOpacity={0.7}
+      style={styles.memeCard}
+      activeOpacity={0.8}
+      // Giữ nguyên tham số navigate của Leader: { meme: item }
       onPress={() => navigation.navigate('DetailScreen', { meme: item })}
     >
-      <Image source={{ uri: item.imageUrl }} style={styles.thumbImage} resizeMode="cover" />
-      <View style={styles.itemBody}>
-        <Text style={styles.itemTitle} numberOfLines={2}>
+      <Image 
+        source={{ uri: item.imageUrl }} 
+        style={styles.memeImage} 
+        resizeMode="cover" 
+      />
+      <View style={styles.memeInfo}>
+        <Text style={styles.memeTitle} numberOfLines={2}>
           {item.title}
         </Text>
-        <View style={styles.itemMeta}>
-          <Text style={styles.badge}>{item.category}</Text>
-          <Text style={styles.itemLikes}>❤️ {item.likes}</Text>
+        <View style={styles.memeMeta}>
+          <Text style={styles.badge}>{item.category || selectedTag}</Text>
+          <Text style={styles.memeLikes}>❤️ {item.likes}</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -58,6 +68,7 @@ export default function SearchFilterScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* Thanh tìm kiếm */}
       <View style={styles.searchBoxContainer}>
         <TextInput
           style={styles.input}
@@ -78,7 +89,11 @@ export default function SearchFilterScreen({ navigation }) {
 
       {/* Dải Tag danh mục */}
       <View style={styles.tagsWrapper}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tagsContainer}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          contentContainerStyle={styles.tagsContainer}
+        >
           {CATEGORIES.map((cat) => {
             const isActive = selectedTag === cat;
             return (
@@ -94,6 +109,7 @@ export default function SearchFilterScreen({ navigation }) {
         </ScrollView>
       </View>
 
+      {/* Hiển thị danh sách kết quả dạng lưới 2 cột */}
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#3B82F6" />
@@ -105,19 +121,23 @@ export default function SearchFilterScreen({ navigation }) {
       ) : (
         <FlatList
           data={results}
-          keyExtractor={(item, index) => item.id || `search_${index}`}
+          keyExtractor={(item, index) => item.id ? item.id.toString() : `search_${index}`}
           renderItem={renderItem}
+          numColumns={2} // Chia 2 cột phong cách Pinterest
+          columnWrapperStyle={styles.rowWrapper} // Khoảng cách giữa 2 cột
           contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
         />
       )}
     </SafeAreaView>
   );
 }
 
+// --- PHẦN 3: STYLES (KẾT HỢP DARK MODE CỦA LEADER VÀ GRID CỦA AI) ---
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0F172A', // Dark mode background
   },
   searchBoxContainer: {
     flexDirection: 'row',
@@ -187,36 +207,40 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontSize: 15,
   },
+  
+  // -- STYLES DÀNH CHO LƯỚI MEME 2 CỘT (PINTEREST STYLE) --
   listContent: {
     paddingHorizontal: 16,
     paddingBottom: 20,
   },
-  itemRow: {
-    flexDirection: 'row',
-    backgroundColor: '#1E293B',
+  rowWrapper: {
+    justifyContent: 'space-between', // Chia đều 2 thẻ meme ra 2 bên
+  },
+  memeCard: {
+    width: '48%', // Chiếm gần nửa màn hình
+    backgroundColor: '#1E293B', // Tone màu nền card theo Leader
     borderRadius: 12,
-    padding: 10,
-    marginBottom: 10,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: '#334155',
+    overflow: 'hidden',
   },
-  thumbImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 8,
+  memeImage: {
+    width: '100%',
+    height: 160, 
     backgroundColor: '#334155',
   },
-  itemBody: {
-    flex: 1,
-    marginLeft: 12,
-    justifyContent: 'space-between',
+  memeInfo: {
+    padding: 10,
   },
-  itemTitle: {
+  memeTitle: {
     fontSize: 14,
     fontWeight: '600',
     color: '#F8FAFC',
+    marginBottom: 8,
+    lineHeight: 20,
   },
-  itemMeta: {
+  memeMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -224,13 +248,13 @@ const styles = StyleSheet.create({
   badge: {
     backgroundColor: '#0F172A',
     color: '#38BDF8',
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: 6,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
   },
-  itemLikes: {
+  memeLikes: {
     color: '#F43F5E',
     fontSize: 12,
     fontWeight: '600',

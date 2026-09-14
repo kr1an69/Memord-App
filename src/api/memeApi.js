@@ -1,9 +1,10 @@
+import { Platform } from 'react-native';
 import { MOCK_MEMES } from '../constants/mockMemes.js';
 import { SUBREDDIT_POOL } from '../constants/subreddits.js';
 
 const BASE_MEME_API = 'https://meme-api.com/gimme';
 
-// ------------------------------- TAnh -----------------------------------
+// ------------------------------- TAnh (Trần Tuấn Anh - Module 1) -----------------------------------
 // Map các category sang subreddit tương ứng trên Reddit để fetch ảnh chuẩn chủ đề
 const SUBREDDIT_MAP = {
   Programmer: 'ProgrammerHumor',
@@ -13,26 +14,30 @@ const SUBREDDIT_MAP = {
   Trending: 'memes',
 };
 
-
 // function shuffle meme array for random subreddits
-const shuffleArray = (array) => {
+const shuffleArray = array => {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
-}
+};
 
 /**
  * Normalize dữ liệu trả về từ Meme-API hoặc Reddit sang đúng schema của Memord
  */
 const normalizeMeme = (item, index, defaultCategory = 'Trending') => ({
-  id: item.postLink ? String(item.postLink).split('/').filter(Boolean).pop() : `meme_${Date.now()}_${index}`,
+  id: item.postLink
+    ? String(item.postLink).split('/').filter(Boolean).pop()
+    : `meme_${Date.now()}_${index}`,
   title: item.title || 'No title',
   imageUrl: item.url || item.imageUrl,
   author: item.author || 'Unknown',
-  likes: typeof item.ups === 'number' ? item.ups : Math.floor(Math.random() * 2000) + 100,
+  likes:
+    typeof item.ups === 'number'
+      ? item.ups
+      : Math.floor(Math.random() * 2000) + 100,
   category: item.subreddit || defaultCategory,
   width: 600,
   height: Math.floor(Math.random() * 250) + 600, // Tỉ lệ ngẫu nhiên 600-850 để hỗ trợ giao diện so le Pinterest
@@ -49,20 +54,22 @@ export const fetchTrendingMemes = async (count = 50) => {
     const chosenSubreddits = shuffleArray(SUBREDDIT_POOL).slice(0, 4);
     const countPerSub = Math.ceil(count / chosenSubreddits.length); // ~12-13 bài mỗi sub
 
-
     // 2. Tạo danh sách các yêu cầu fetch song song kèm bẻ cache ?t=...
-    const fetchPromises = chosenSubreddits.map(async (sub) => {
+    const fetchPromises = chosenSubreddits.map(async sub => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 6000);
-      const res = await fetch(`${BASE_MEME_API}/${sub}/${countPerSub}?t=${Date.now()}`, {
-        signal: controller.signal,
-      });
+      const res = await fetch(
+        `${BASE_MEME_API}/${sub}/${countPerSub}?t=${Date.now()}`,
+        {
+          signal: controller.signal,
+        }
+      );
       clearTimeout(timeoutId);
       if (!res.ok) throw new Error(`Lỗi fetch subreddit: ${sub}`);
       const data = await res.json();
       if (data && Array.isArray(data.memes)) {
         return data.memes
-          .filter((m) => !m.nsfw)
+          .filter(m => !m.nsfw)
           .map((item, idx) => normalizeMeme(item, idx, sub));
       }
       return [];
@@ -71,7 +78,7 @@ export const fetchTrendingMemes = async (count = 50) => {
     // 3. Dùng allSettled: cái nào lỗi kệ nó, gom toàn bộ kết quả thành công
     const settleResults = await Promise.allSettled(fetchPromises);
     const combinedMemes = [];
-    settleResults.forEach((result) => {
+    settleResults.forEach(result => {
       if (result.status === 'fulfilled' && Array.isArray(result.value)) {
         combinedMemes.push(...result.value);
       }
@@ -79,7 +86,7 @@ export const fetchTrendingMemes = async (count = 50) => {
     // 4. Nếu có dữ liệu online, lọc trùng ID và xáo trộn ngẫu nhiên
     if (combinedMemes.length > 0) {
       const seenIds = new Set();
-      const uniqueMemes = combinedMemes.filter((m) => {
+      const uniqueMemes = combinedMemes.filter(m => {
         if (seenIds.has(m.id)) return false;
         seenIds.add(m.id);
         return true;
@@ -94,149 +101,304 @@ export const fetchTrendingMemes = async (count = 50) => {
   }
 };
 
-// ------------------------------- Khoa -----------------------------------
-// Từ điển đồng nghĩa Anh - Việt phục vụ tìm kiếm thông minh
-const SYNONYM_MAP = {
-  cat: ['mèo', 'cat', 'meow', 'kitten', 'happy_cat', 'meow_funny'],
-  mèo: ['mèo', 'cat', 'meow', 'kitten', 'happy_cat', 'meow_funny'],
-  code: ['code', 'programmer', 'dev', 'bug', 'lập trình', 'client', 'boss', 'review', 'senior_dev', 'bug_hunter', 'code_architect', 'ui_ux_ninja'],
-  dev: ['code', 'programmer', 'dev', 'bug', 'lập trình', 'senior_dev', 'bug_hunter', 'code_architect'],
-  bug: ['bug', 'fix 1 bug', 'code', 'dev', 'lập trình', 'bug_hunter'],
-  'lập trình': ['code', 'programmer', 'dev', 'bug', 'lập trình', 'senior_dev'],
-  programmer: ['code', 'programmer', 'dev', 'bug', 'lập trình', 'senior_dev', 'code_architect'],
-  anime: ['anime', 'wibu', 'otaku', 'gacha', 'ssr', 'main anime', 'otaku_king', 'anime_fan99'],
-  game: ['game', 'gaming', 'chơi game', 'gánh team', 'ranked', 'pro_gamer', 'ranked_warrior'],
-  gaming: ['game', 'gaming', 'chơi game', 'gánh team', 'ranked', 'pro_gamer', 'ranked_warrior'],
-  trending: ['trending', 'thứ 2', 'deadline', 'monday_blues', 'thịnh hành'],
+// ------------------------------- Khoa (Vũ Đăng Khoa - Module 3: Search & Filter API) -----------------------------------
+
+// Bộ nhớ đệm RAM Cache riêng cho Search API
+const responseCache = new Map();
+const CACHE_TTL_MS = 90 * 1000;
+
+const getCachedData = key => {
+  const item = responseCache.get(key);
+  if (item && Date.now() - item.timestamp < CACHE_TTL_MS) {
+    return item.data;
+  }
+  responseCache.delete(key);
+  return null;
 };
 
-/**
- * Kiểm tra xem một meme (title, category, author) có khớp với keyword tìm kiếm hay không
- */
-const matchesQuery = (meme, queryStr) => {
-  if (!queryStr || queryStr.trim() === '') return true;
-  const q = queryStr.toLowerCase().trim();
-  const title = (meme.title || '').toLowerCase();
-  const category = (meme.category || '').toLowerCase();
-  const author = (meme.author || '').toLowerCase();
-
-  // 1. Phù hợp trực tiếp trong tiêu đề, thể loại hoặc tác giả
-  if (title.includes(q) || category.includes(q) || author.includes(q)) {
-    return true;
+const setCachedData = (key, data) => {
+  if (!data || data.length === 0) return;
+  responseCache.set(key, { data, timestamp: Date.now() });
+  if (responseCache.size > 60) {
+    const firstKey = responseCache.keys().next().value;
+    responseCache.delete(firstKey);
   }
-
-  // 2. Phù hợp qua từ điển đồng nghĩa Anh - Việt
-  const synonyms = SYNONYM_MAP[q];
-  if (synonyms && Array.isArray(synonyms)) {
-    return synonyms.some(
-      (syn) => title.includes(syn) || category.includes(syn) || author.includes(syn)
-    );
-  }
-
-  // 3. Tách từ ghép để tìm từng từ nhỏ (ví dụ "mèo hài" -> tìm "mèo")
-  const words = q.split(/\s+/).filter((w) => w.length > 1);
-  if (words.length > 1) {
-    return words.some((w) => title.includes(w) || category.includes(w));
-  }
-
-  return false;
 };
 
-/**
- * Search hoặc Filter Meme theo từ khóa và chủ đề cho SearchFilterScreen
- * @param {string} query Từ khóa tìm kiếm
- * @param {string} category Thể loại (Programmer | Cat | Anime | Gaming | Trending | Tất cả)
- * @returns {Promise<Array>} Danh sách meme phù hợp
- */
-export const searchMemes = async (query = '', category = 'Tất cả') => {
+// Hàm gửi request kèm timeout tự động cho Search
+const fetchWithTimeout = async (url, options = {}, timeoutMs = 6000) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const cleanQuery = query ? query.trim() : '';
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    throw err;
+  }
+};
 
-    // 1. Xác định Subreddit mục tiêu dựa trên Category & Query
-    let targetSubreddits = [];
+// Map danh mục sang các Subreddit tương ứng cho Search & Filter
+const KHOA_SUBREDDIT_MAP = {
+  Programmer: [
+    'ProgrammerHumor',
+    'programmingmemes',
+    'softwareengineeringmemes',
+    'coder',
+  ],
+  Cat: ['catmemes', 'cats', 'Meow_irl', 'Catmemes'],
+  Anime: ['Animemes', 'goodanimemes', 'anime_irl', 'AnimeMeme'],
+  Gaming: ['gaming', 'GamingMemes', 'wholesomememes', 'dankmemes'],
+  Trending: ['memes', 'dankmemes', 'me_irl', 'wholesomememes', 'funny'],
+};
 
-    if (category && category !== 'Tất cả' && SUBREDDIT_MAP[category]) {
-      const mapped = SUBREDDIT_MAP[category];
-      targetSubreddits = Array.isArray(mapped) ? mapped : [mapped];
-    } else {
-      // Nếu là "Tất cả", thử phân tích từ khóa để chọn Subreddit phù hợp nhất
-      const qLower = cleanQuery.toLowerCase();
-      if (qLower.includes('cat') || qLower.includes('mèo')) {
-        targetSubreddits = ['catmemes', 'cats'];
-      } else if (qLower.includes('dog') || qLower.includes('chó')) {
-        targetSubreddits = ['dogmemes'];
-      } else if (qLower.includes('code') || qLower.includes('dev') || qLower.includes('bug') || qLower.includes('lập trình')) {
-        targetSubreddits = ['ProgrammerHumor', 'codingmemes'];
-      } else if (qLower.includes('anime') || qLower.includes('wibu')) {
-        targetSubreddits = ['Animemes', 'goodanimemes'];
-      } else if (qLower.includes('game') || qLower.includes('gaming')) {
-        targetSubreddits = ['wholesomememes', 'gamingmemes'];
+// Hàm loại bỏ dấu tiếng Việt chuẩn xác
+const removeVietnameseAccents = str => {
+  if (!str) return '';
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D');
+};
+
+/**
+ * Chuẩn hóa 1 bài post từ Reddit API trực tiếp (reddit.com/r/{sub}/hot.json)
+ * Hỗ trợ phân tích ảnh trực tiếp, preview image, imgur và Reddit gallery
+ */
+const parseRedditDirectPost = (item, index, categoryTag = 'Reddit') => {
+  if (!item || !item.data) return null;
+  const p = item.data;
+  if (p.over_18 || p.is_video) return null;
+  let imageUrl = p.url_overridden_by_dest || p.url || '';
+
+  if (p.is_gallery && p.media_metadata) {
+    const firstMediaId = Object.keys(p.media_metadata)[0];
+    if (firstMediaId && p.media_metadata[firstMediaId]?.s?.u) {
+      imageUrl = p.media_metadata[firstMediaId].s.u;
+    }
+  }
+
+  if (
+    !imageUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) &&
+    p.preview?.images?.[0]?.source?.url
+  ) {
+    imageUrl = p.preview.images[0].source.url;
+  }
+  imageUrl = (imageUrl || '').replace(/&amp;/g, '&');
+
+  const isValidImage =
+    imageUrl.startsWith('http') &&
+    (imageUrl.match(/\.(jpg|jpeg|png|gif|webp)/i) ||
+      imageUrl.includes('i.redd.it') ||
+      imageUrl.includes('i.imgur.com') ||
+      imageUrl.includes('preview.redd.it') ||
+      imageUrl.includes('external-preview.redd.it'));
+  if (!isValidImage) return null;
+
+  return {
+    id: p.id ? `rd_${p.id}` : `rd_${Date.now()}_${index}`,
+    title: p.title || 'Meme from Reddit',
+    imageUrl: imageUrl,
+    author: p.author ? `u/${p.author}` : 'Reddit User',
+    likes:
+      typeof p.ups === 'number'
+        ? p.ups
+        : p.score || Math.floor(Math.random() * 2000) + 100,
+    category: p.subreddit ? `r/${p.subreddit}` : categoryTag,
+    width: 600,
+    height: Math.floor(Math.random() * 250) + 600,
+  };
+};
+
+/**
+ * Hàm tìm kiếm TRỰC TIẾP trên Reddit cho SearchFilterScreen (Thuộc Module 3 - Vũ Đăng Khoa)
+ * @param {string} query Từ khóa tìm kiếm từ người dùng
+ * @param {string} category Danh mục được chọn (Programmer | Cat | Anime | Gaming | Trending | Tất cả)
+ * @param {number} page Trang hiện tại (1, 2, 3...)
+ * @returns {Promise<Array>} Danh sách Meme chuẩn Schema
+ */
+export const searchMemes = async (
+  query = '',
+  category = 'Tất cả',
+  page = 1
+) => {
+  const rawQuery = (query || '').trim();
+  const cacheKey = `search_${rawQuery.toLowerCase()}_${category}_${page}`;
+
+  if (page === 1) {
+    const cached = getCachedData(cacheKey);
+    if (cached) return cached;
+  }
+
+  try {
+    const isWeb = Platform.OS === 'web';
+    const cleanNoAccents = removeVietnameseAccents(rawQuery)
+      .toLowerCase()
+      .trim();
+    let fetchedMemes = [];
+
+    // 1. Xác định danh sách Subreddit mục tiêu dựa trên từ khóa hoặc danh mục
+    let targetSubs = [];
+    if (cleanNoAccents !== '') {
+      const words = cleanNoAccents.split(/\s+/).filter(Boolean);
+      const mainWord = words[0].replace(/[^a-z0-9]/g, '');
+      if (mainWord.length > 1) {
+        targetSubs = [
+          `${mainWord}memes`,
+          mainWord,
+          'memes',
+          'dankmemes',
+          'wholesomememes',
+        ];
       } else {
-        targetSubreddits = ['memes', 'dankmemes', 'me_irl', 'funny'];
+        targetSubs = ['memes', 'dankmemes', 'wholesomememes', 'funny'];
       }
+    } else if (category !== 'Tất cả' && KHOA_SUBREDDIT_MAP[category]) {
+      targetSubs = KHOA_SUBREDDIT_MAP[category];
+    } else {
+      targetSubs = ['memes', 'dankmemes', 'wholesomememes', 'funny', 'me_irl'];
     }
 
-    // 2. Fetch meme từ Online API
-    const subToFetch = targetSubreddits[Math.floor(Math.random() * targetSubreddits.length)] || 'memes';
-    let onlineMemes = [];
+    // Luân phiên chọn các Subreddit theo phân trang
+    const itemsPerPage = 2;
+    const startIndex = ((page - 1) * itemsPerPage) % targetSubs.length;
+    const selectedSubs = targetSubs.slice(
+      startIndex,
+      startIndex + itemsPerPage
+    );
 
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
-
-      const response = await fetch(`${BASE_MEME_API}/${subToFetch}/40?t=${Date.now()}`, {
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data && Array.isArray(data.memes)) {
-          onlineMemes = data.memes
-            .filter((m) => !m.nsfw)
-            .map((item, idx) => normalizeMeme(item, idx, category !== 'Tất cả' ? category : subToFetch));
+    // 2. Tải bài viết từ các Subreddit mục tiêu (Kết nối trực tiếp Reddit trên Mobile)
+    const subPromises = selectedSubs.map(async sub => {
+      try {
+        if (!isWeb) {
+          const redditSubUrl = `https://www.reddit.com/r/${sub}/hot.json?limit=30&raw_json=1`;
+          const res = await fetchWithTimeout(
+            redditSubUrl,
+            {
+              headers: {
+                'User-Agent':
+                  'android:com.memord.app:v1.0.0 (by /u/memord_dev)',
+                Accept: 'application/json',
+              },
+            },
+            5000
+          );
+          if (res.ok) {
+            const json = await res.json();
+            if (json?.data?.children && Array.isArray(json.data.children)) {
+              return json.data.children
+                .map((item, idx) =>
+                  parseRedditDirectPost(
+                    item,
+                    idx,
+                    category !== 'Tất cả' ? category : sub
+                  )
+                )
+                .filter(Boolean);
+            }
+          }
         }
-      }
-    } catch (e) {
-      console.warn('[MemeApi] Online fetch failed, fallback to mock data:', e.message);
-    }
-
-    // 3. Lọc danh sách online theo Query
-    let filteredOnline = onlineMemes.filter((m) => matchesQuery(m, cleanQuery));
-
-    // 4. Lọc dữ liệu Mock chuẩn bị sẵn
-    let filteredMock = MOCK_MEMES.filter((m) => {
-      // Lọc theo Category (nếu chọn cụ thể)
-      if (category && category !== 'Tất cả') {
-        const catMatch = m.category.toLowerCase() === category.toLowerCase();
-        if (!catMatch) return false;
-      }
-      // Lọc theo Query
-      return matchesQuery(m, cleanQuery);
+        // Fallback sang BASE_MEME_API cho Web hoặc khi kết nối trực tiếp bị sập
+        const res = await fetchWithTimeout(
+          `${BASE_MEME_API}/${sub}/30`,
+          {},
+          5000
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data && Array.isArray(data.memes)) {
+            return data.memes
+              .filter(m => !m.nsfw && m.url)
+              .map((item, idx) =>
+                normalizeMeme(
+                  item,
+                  `sub_${page}_${idx}`,
+                  category !== 'Tất cả' ? category : sub
+                )
+              );
+          }
+        }
+      } catch (e) {}
+      return [];
     });
 
-    // 5. Kết hợp kết quả (Ưu tiên online, sau đó ghép mock để kết quả luôn phong phú)
-    const combined = [...filteredOnline, ...filteredMock];
+    const subResults = await Promise.allSettled(subPromises);
+    subResults.forEach(r => {
+      if (r.status === 'fulfilled' && Array.isArray(r.value)) {
+        fetchedMemes.push(...r.value);
+      }
+    });
 
-    // Lọc trùng lặp ID
-    const seenIds = new Set();
-    const finalResults = combined.filter((m) => {
-      if (!m.id || seenIds.has(m.id)) return false;
-      seenIds.add(m.id);
+    // 3. Dự phòng offline từ MOCK_MEMES
+    const filteredMock = MOCK_MEMES.filter(m => {
+      if (
+        category !== 'Tất cả' &&
+        m.category.toLowerCase() !== category.toLowerCase()
+      )
+        return false;
+      if (cleanNoAccents !== '') {
+        const titleClean = removeVietnameseAccents(m.title || '').toLowerCase();
+        return titleClean.includes(cleanNoAccents);
+      }
       return true;
     });
 
-    // 6. Nếu kết quả vẫn rỗng khi tìm kiếm cụ thể, trả về các meme cùng danh mục hoặc MOCK_MEMES ngẫu nhiên để không bị trống màn hình
-    if (finalResults.length === 0) {
-      if (category && category !== 'Tất cả') {
-        return MOCK_MEMES.filter((m) => m.category.toLowerCase() === category.toLowerCase());
+    // 4. Lọc bài viết liên quan từ khóa nếu có query
+    let candidates = [...fetchedMemes, ...filteredMock];
+    if (cleanNoAccents !== '') {
+      const queryWords = cleanNoAccents.split(/\s+/).filter(w => w.length > 1);
+      if (queryWords.length > 0) {
+        const matched = candidates.filter(m => {
+          const titleClean = removeVietnameseAccents(
+            m.title || ''
+          ).toLowerCase();
+          const catClean = (m.category || '').toLowerCase();
+          return queryWords.some(
+            w => titleClean.includes(w) || catClean.includes(w)
+          );
+        });
+        if (matched.length > 0) {
+          candidates = matched;
+        }
       }
-      return MOCK_MEMES;
+    }
+
+    // 5. Khử trùng lặp tuyệt đối theo ID & Image URL
+    const seenIds = new Set();
+    const seenUrls = new Set();
+    const finalResults = candidates.filter(m => {
+      if (!m || !m.id || !m.imageUrl) return false;
+      const idStr = String(m.id);
+      if (seenIds.has(idStr) || seenUrls.has(m.imageUrl)) return false;
+      seenIds.add(idStr);
+      seenUrls.add(m.imageUrl);
+      return true;
+    });
+
+    if (page === 1 && finalResults.length > 0) {
+      setCachedData(cacheKey, finalResults);
     }
 
     return finalResults;
   } catch (error) {
-    console.warn('[MemeApi] Lỗi tìm kiếm, trả về mock fallback:', error.message);
-    return MOCK_MEMES.filter((m) => matchesQuery(m, query));
+    console.warn('[MemeApi] Lỗi tìm kiếm, fallback MOCK:', error.message);
+    return MOCK_MEMES.filter(m => {
+      if (
+        category !== 'Tất cả' &&
+        m.category.toLowerCase() !== category.toLowerCase()
+      )
+        return false;
+      if (query.trim() !== '') {
+        const titleClean = removeVietnameseAccents(m.title || '').toLowerCase();
+        const queryClean = removeVietnameseAccents(query).toLowerCase();
+        return titleClean.includes(queryClean);
+      }
+      return true;
+    });
   }
 };

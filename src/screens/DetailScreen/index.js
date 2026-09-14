@@ -8,7 +8,6 @@ import {
   ScrollView,
   Share,
   Alert,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -43,11 +42,6 @@ export default function DetailScreen({ route, navigation }) {
 
   const handleShare = async () => {
     try {
-      if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(meme.imageUrl);
-        Alert.alert('Đã sao chép link!', 'Đã chép liên kết hình ảnh vào khay nhớ tạm.');
-        return;
-      }
       await Share.share({
         message: `Xem meme "${meme.title}" này trên Memord nhé: ${meme.imageUrl}`,
         url: meme.imageUrl,

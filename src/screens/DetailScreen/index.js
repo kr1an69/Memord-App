@@ -42,13 +42,14 @@ export default function DetailScreen({ route, navigation }) {
   // State quản lý tương tác người dùng
   const [likes, setLikes] = useState(Number(meme.likes) || 0);
   const [isLiked, setIsLiked] = useState(false);
-const [likes, setLikes] = useState(meme.likes || 0);
-const [isLiked, setIsLiked] = useState(false);
 
-// Thay state cục bộ cho "saved" bằng hook dùng chung
-const { addFavorite, removeFavorite, isFavorite } = useFavorites();
-// guard nếu meme.id có thể undefined
-const isSaved = meme && meme.id ? isFavorite(meme.id) : false;
+  const [imageLoading, setImageLoading] = useState(false);
+  const [isViewerVisible, setIsViewerVisible] = useState(false);
+
+  // Thay state cục bộ cho "saved" bằng hook dùng chung
+  const { addFavorite, removeFavorite, isFavorite } = useFavorites();
+  // guard nếu meme.id có thể undefined
+  const isSaved = meme && meme.id ? isFavorite(meme.id) : false;
 
   // Xử lý sự kiện Thả Tim (Like): Đổi màu tim và tăng/giảm 1 like
   const handleToggleLike = () => {
@@ -62,15 +63,15 @@ const isSaved = meme && meme.id ? isFavorite(meme.id) : false;
   };
 
   // Xử lý sự kiện Lưu vào Bộ sưu tập: Đổi trạng thái icon thành "Đã lưu"
-const handleToggleSave = () => {
-  if (isSaved) {
-    removeFavorite(meme.id);
-    Alert.alert('Đã gỡ', 'Meme đã được xóa khỏi Bộ sưu tập.');
-  } else {
-    addFavorite(meme);
-    Alert.alert('Đã lưu! 🎉', 'Meme đã được lưu vào Bộ sưu tập yêu thích!');
-  }
-};
+  const handleToggleSave = () => {
+    if (isSaved) {
+      removeFavorite(meme.id);
+      Alert.alert('Đã gỡ', 'Meme đã được xóa khỏi Bộ sưu tập.');
+    } else {
+      addFavorite(meme);
+      Alert.alert('Đã lưu! 🎉', 'Meme đã được lưu vào Bộ sưu tập yêu thích!');
+    }
+  };
 
   // Xử lý sự kiện Chia sẻ (Share) qua Native Share Dialog
   const handleShare = async () => {

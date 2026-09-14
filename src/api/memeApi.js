@@ -3,138 +3,16 @@ import { SUBREDDIT_POOL } from '../constants/subreddits.js';
 
 const BASE_MEME_API = 'https://meme-api.com/gimme';
 
-// Map các category sang nhiều Subreddit tương ứng trên Reddit để luân phiên tải ảnh
+// ------------------------------- TAnh -----------------------------------
+// Map các category sang subreddit tương ứng trên Reddit để fetch ảnh chuẩn chủ đề
 const SUBREDDIT_MAP = {
-  Programmer: ['ProgrammerHumor', 'programmingmemes', 'softwareengineeringmemes', 'coder'],
-  Cat: ['catmemes', 'cats', 'Meow_irl', 'Catmemes'],
-  Anime: ['Animemes', 'goodanimemes', 'anime_irl', 'AnimeMeme'],
-  Gaming: ['gaming', 'GamingMemes', 'wholesomememes', 'dankmemes'],
-  Trending: ['memes', 'dankmemes', 'me_irl', 'wholesomememes', 'funny'],
+  Programmer: 'ProgrammerHumor',
+  Cat: 'catmemes',
+  Anime: 'Animemes',
+  Gaming: 'wholesomememes',
+  Trending: 'memes',
 };
 
-// Cấu hình kho chủ đề thông minh mở rộng (Phủ sóng hơn 20+ chủ đề hot nhất)
-const TOPIC_CONFIG = [
-  {
-    name: 'Guns',
-    subreddits: ['gunmemes', 'guns', 'Firearms'],
-    keywords: ['súng', 'sung', 'gun', 'guns', 'weapon', 'firearm', 'ak47', 'bắn súng', 'ban sung'],
-    mockCategory: 'General',
-  },
-  {
-    name: 'Superhero',
-    subreddits: ['marvelmemes', 'DC_Cinematic', 'superhero', 'ComicBookMemes'],
-    keywords: ['siêu nhân', 'sieu nhan', 'superhero', 'marvel', 'dc', 'batman', 'spiderman', 'avengers', 'ironman', 'thor'],
-    mockCategory: 'General',
-  },
-  {
-    name: 'Gym',
-    subreddits: ['gymmemes', 'fitness30plus', 'bodybuilding'],
-    keywords: ['gym', 'fitness', 'tập gym', 'tap gym', 'thể hình', 'workout', 'muscle', 'tạ', 'tập tạ', 'chạy bộ'],
-    mockCategory: 'General',
-  },
-  {
-    name: 'iPhone / Apple',
-    subreddits: ['iphone', 'apple', 'macbook', 'ios'],
-    keywords: ['iphone', 'apple', 'ios', 'điện thoại', 'dien thoai', 'ipad', 'macbook', 'airpods'],
-    mockCategory: 'General',
-  },
-  {
-    name: 'Laptop / PC',
-    subreddits: ['pcmasterrace', 'techsupportgurus', 'laptops', 'technology'],
-    keywords: ['laptop', 'pc', 'máy tính', 'may tinh', 'tech', 'setup', 'card đồ họa', 'gpu', 'ram', 'cpu'],
-    mockCategory: 'Programmer',
-  },
-  {
-    name: 'Cars',
-    subreddits: ['carMemes', 'cars', 'auto'],
-    keywords: ['xe', 'xe hơi', 'xe hoi', 'car', 'cars', 'oto', 'ô tô', 'driver', 'racing', 'bánh xe'],
-    mockCategory: 'General',
-  },
-  {
-    name: 'Food',
-    subreddits: ['foodmemes', 'FoodPorn', 'eat'],
-    keywords: ['đồ ăn', 'do an', 'thức ăn', 'thuc an', 'food', 'pizza', 'burger', 'ăn', 'an uống', 'nấu ăn'],
-    mockCategory: 'General',
-  },
-  {
-    name: 'School',
-    subreddits: ['schoolmemes', 'students', 'college'],
-    keywords: ['trường', 'truong', 'học', 'hoc', 'school', 'student', 'thi', 'kiểm tra', 'homework', 'giáo viên', 'thầy', 'cô'],
-    mockCategory: 'General',
-  },
-  {
-    name: 'Money',
-    subreddits: ['wallstreetbets', 'financialindependence', 'money'],
-    keywords: ['tiền', 'tien', 'money', 'lương', 'luong', 'dollar', 'giàu', 'nghèo', 'crypto', 'bitcoin'],
-    mockCategory: 'General',
-  },
-  {
-    name: 'Work',
-    subreddits: ['workmemes', 'jobs', 'office'],
-    keywords: ['đi làm', 'di lam', 'công việc', 'cong viec', 'work', 'job', 'boss', 'sếp', 'đồng nghiệp', 'ot', 'tăng ca'],
-    mockCategory: 'General',
-  },
-  {
-    name: 'Sleep',
-    subreddits: ['sleep', 'bed'],
-    keywords: ['ngủ', 'ngu', 'sleep', 'buồn ngủ', 'buon ngu', 'mệt', 'tỉnh dậy', 'báo thức'],
-    mockCategory: 'General',
-  },
-  {
-    name: 'Love',
-    subreddits: ['relationship_memes', 'love'],
-    keywords: ['tình yêu', 'tinh yeu', 'love', 'crush', 'bạn gái', 'bạn trai', 'người yêu', 'ex', 'thất tình'],
-    mockCategory: 'General',
-  },
-  {
-    name: 'Sports',
-    subreddits: ['sports', 'footballmemes', 'soccer'],
-    keywords: ['thể thao', 'the thao', 'football', 'soccer', 'bóng đá', 'bong da', 'messi', 'ronaldo', 'nba'],
-    mockCategory: 'General',
-  },
-  {
-    name: 'Movies',
-    subreddits: ['MovieMemes', 'movies', 'cinema'],
-    keywords: ['phim', 'movie', 'movies', 'cinema', 'rạp chiếu phim', 'hollywood'],
-    mockCategory: 'General',
-  },
-  {
-    name: 'Music',
-    subreddits: ['musicmemes', 'Music'],
-    keywords: ['nhạc', 'nhac', 'music', 'bài hát', 'ca sĩ', 'guitar'],
-    mockCategory: 'General',
-  },
-  {
-    name: 'Dog',
-    subreddits: ['dogmemes', 'dogs', 'rarepuppers', 'doge', 'Doggos', 'lookatmydog'],
-    keywords: ['chó', 'cho', 'cún', 'cun', 'dog', 'puppy', 'doge', 'gâu', 'con chó', 'chó con', 'husky', 'shiba'],
-    mockCategory: 'Dog',
-  },
-  {
-    name: 'Cat',
-    subreddits: ['catmemes', 'cats', 'Meow_irl', 'cat', 'catsimulator', 'Catmemes'],
-    keywords: ['mèo', 'meo', 'cat', 'kitten', 'kitty', 'meow', 'con mèo', 'mèo con', 'miu', 'mun'],
-    mockCategory: 'Cat',
-  },
-  {
-    name: 'Programmer',
-    subreddits: ['ProgrammerHumor', 'programmingmemes', 'softwareengineeringmemes', 'coder', 'programmer'],
-    keywords: ['code', 'dev', 'programmer', 'bug', 'lập trình', 'lap trinh', 'coder', 'phần mềm', 'fix bug', 'senior', 'junior'],
-    mockCategory: 'Programmer',
-  },
-  {
-    name: 'Anime',
-    subreddits: ['Animemes', 'goodanimemes', 'anime_irl', 'AnimeMeme'],
-    keywords: ['anime', 'wibu', 'otaku', 'manga', 'hoạt hình', 'waifu'],
-    mockCategory: 'Anime',
-  },
-  {
-    name: 'Gaming',
-    subreddits: ['gaming', 'GamingMemes', 'wholesomememes', 'dankmemes', 'me_irl'],
-    keywords: ['game', 'gaming', 'chơi game', 'choi game', 'game thủ', 'gánh team', 'ranked', 'pro', 'liên quân', 'lmht', 'valorant', 'pubg'],
-    mockCategory: 'Gaming',
-  },
-];
 
 // function shuffle meme array for random subreddits
 const shuffleArray = (array) => {
@@ -144,7 +22,7 @@ const shuffleArray = (array) => {
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
-};
+}
 
 /**
  * Normalize dữ liệu trả về từ Meme-API hoặc Reddit sang đúng schema của Memord
@@ -157,17 +35,22 @@ const normalizeMeme = (item, index, defaultCategory = 'Trending') => ({
   likes: typeof item.ups === 'number' ? item.ups : Math.floor(Math.random() * 2000) + 100,
   category: item.subreddit || defaultCategory,
   width: 600,
-  height: Math.floor(Math.random() * 250) + 600,
+  height: Math.floor(Math.random() * 250) + 600, // Tỉ lệ ngẫu nhiên 600-850 để hỗ trợ giao diện so le Pinterest
 });
 
 /**
  * Lấy danh sách trending memes cho HomeScreen
+ * @param {number} count Số lượng meme cần lấy (mặc định 20)
+ * @returns {Promise<Array>} Danh sách các meme đã chuẩn hóa
  */
 export const fetchTrendingMemes = async (count = 50) => {
   try {
+    // 1. Bốc ngẫu nhiên 4 subreddit khác nhau từ SUBREDDIT_POOL
     const chosenSubreddits = shuffleArray(SUBREDDIT_POOL).slice(0, 4);
-    const countPerSub = Math.ceil(count / chosenSubreddits.length);
+    const countPerSub = Math.ceil(count / chosenSubreddits.length); // ~12-13 bài mỗi sub
 
+
+    // 2. Tạo danh sách các yêu cầu fetch song song kèm bẻ cache ?t=...
     const fetchPromises = chosenSubreddits.map(async (sub) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 6000);
@@ -185,6 +68,7 @@ export const fetchTrendingMemes = async (count = 50) => {
       return [];
     });
 
+    // 3. Dùng allSettled: cái nào lỗi kệ nó, gom toàn bộ kết quả thành công
     const settleResults = await Promise.allSettled(fetchPromises);
     const combinedMemes = [];
     settleResults.forEach((result) => {
@@ -192,7 +76,7 @@ export const fetchTrendingMemes = async (count = 50) => {
         combinedMemes.push(...result.value);
       }
     });
-
+    // 4. Nếu có dữ liệu online, lọc trùng ID và xáo trộn ngẫu nhiên
     if (combinedMemes.length > 0) {
       const seenIds = new Set();
       const uniqueMemes = combinedMemes.filter((m) => {
@@ -202,6 +86,7 @@ export const fetchTrendingMemes = async (count = 50) => {
       });
       return shuffleArray(uniqueMemes);
     }
+    // Fallback: Nếu mất mạng hoàn toàn thì xáo trộn mock data
     return shuffleArray(MOCK_MEMES);
   } catch (error) {
     console.warn('[MemeApi] Lỗi mạng, kích hoạt Fallback Mock:', error.message);
@@ -209,106 +94,51 @@ export const fetchTrendingMemes = async (count = 50) => {
   }
 };
 
-// ------------------------------- Khoa (Search & Filter API - Siêu tốc & Đa chủ đề 100%) -----------------------------------
-
+// ------------------------------- Khoa -----------------------------------
 /**
- * Hàm Tìm kiếm & Lọc Meme không giới hạn (hỗ trợ phân trang page vô tận & hơn 20+ chủ đề)
- * @param {string} query Từ khóa tìm kiếm (vd: "súng", "siêu nhân", "gym", "iphone", "laptop", "con chó", "con mèo", "lập trình")
- * @param {string} category Danh mục được lọc (Programmer | Cat | Anime | Gaming | Trending | Tất cả)
- * @param {number} page Trang hiện tại (1, 2, 3...)
- * @returns {Promise<Array>} Danh sách Meme chuẩn Schema
+ * Search or filter Meme theo từ khóa và chủ đề cho SearchFilterScreen
+ * @param {string} query Từ khóa tìm kiếm
+ * @param {string} category Thể loại (Programmer | Anime | Cat | Gaming | Trending | Tất cả)
+ * @returns {Promise<Array>} Danh sách meme 
  */
-export const searchMemes = async (query = '', category = 'Tất cả', page = 1) => {
+export const searchMemes = async (query = '', category = 'Tất cả') => {
   try {
-    const rawQuery = (query || '').trim();
-    const qLower = rawQuery.toLowerCase();
-
-    // 1. Nhận diện chủ đề từ từ khóa tiếng Việt / tiếng Anh trong kho 20+ chủ đề
-    let matchedTopic = null;
-    if (qLower) {
-      matchedTopic = TOPIC_CONFIG.find((topic) =>
-        topic.keywords.some((kw) => qLower.includes(kw) || kw.includes(qLower))
-      );
-    }
-
-    // 2. Xác định danh sách Subreddit mục tiêu dựa trên chủ đề hoặc từ khóa trực tiếp
-    let targetSubList = ['memes', 'dankmemes', 'me_irl', 'wholesomememes', 'funny'];
-
-    if (matchedTopic) {
-      targetSubList = matchedTopic.subreddits;
-    } else if (category !== 'Tất cả' && SUBREDDIT_MAP[category]) {
-      targetSubList = Array.isArray(SUBREDDIT_MAP[category])
-        ? SUBREDDIT_MAP[category]
-        : [SUBREDDIT_MAP[category]];
-    } else if (qLower.length > 2) {
-      // Nếu không khớp bảng từ khóa, thử dùng chính từ khóa làm tên Subreddit (vd: "robot", "coffee", "space")
-      const cleanWord = qLower.replace(/[^a-z0-9]/g, '');
-      if (cleanWord.length > 2) {
-        targetSubList = [cleanWord, 'memes', 'dankmemes'];
-      }
-    }
-
-    // Luân phiên chọn Subreddit theo số trang (page)
-    const subIndex = Math.max(0, page - 1) % targetSubList.length;
-    const targetSub = targetSubList[subIndex] || 'memes';
-
-    // 3. Gọi API lấy 50 Meme từ Subreddit công khai
-    let onlineMemes = [];
-    try {
+    // Nếu có chọn thể loại cụ thể khác "Tất cả", thử fetch theo subreddit tương ứng
+    const targetSubreddit = SUBREDDIT_MAP[category];
+    if (targetSubreddit) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-      const response = await fetch(`${BASE_MEME_API}/${targetSub}/50?t=${Date.now()}_${page}`, {
+      const response = await fetch(`${BASE_MEME_API}/${targetSubreddit}/25`, {
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
 
       if (response.ok) {
         const data = await response.json();
-        if (data && Array.isArray(data.memes)) {
-          onlineMemes = data.memes
-            .filter((m) => !m.nsfw)
-            .map((item, idx) => normalizeMeme(item, `p${page}_${idx}`, matchedTopic ? matchedTopic.name : category));
+        if (data && Array.isArray(data.memes) && data.memes.length > 0) {
+          let list = data.memes.filter((m) => !m.nsfw).map((item, idx) => normalizeMeme(item, idx, category));
+          if (query && query.trim() !== '') {
+            const lowerQ = query.toLowerCase().trim();
+            list = list.filter((m) => m.title.toLowerCase().includes(lowerQ));
+          }
+          if (list.length > 0) return list;
         }
-      }
-    } catch (e) {
-      console.warn('[MemeApi] Lỗi kết nối online, chuyển sang fallback:', e.message);
-    }
-
-    // 4. Lọc dữ liệu Online
-    let filteredOnline = onlineMemes;
-    if (!matchedTopic && qLower !== '') {
-      const matchedByTitle = onlineMemes.filter((m) => {
-        const title = (m.title || '').toLowerCase();
-        return title.includes(qLower);
-      });
-      if (matchedByTitle.length > 0) {
-        filteredOnline = matchedByTitle;
-      } else if (onlineMemes.length > 0) {
-        filteredOnline = onlineMemes.slice(0, 25);
       }
     }
 
-    // 5. Lọc dữ liệu Mock tương ứng
-    let filteredMock = MOCK_MEMES.filter((m) => {
-      if (category !== 'Tất cả' && m.category.toLowerCase() !== category.toLowerCase()) return false;
-      if (qLower !== '') {
-        if (matchedTopic && matchedTopic.mockCategory !== 'General') {
-          return (
-            m.category.toLowerCase() === matchedTopic.mockCategory.toLowerCase() ||
-            (m.title || '').toLowerCase().includes(qLower)
-          );
-        }
-        return (m.title || '').toLowerCase().includes(qLower);
-      }
-      return true;
-    });
-
-    // 6. Gộp kết quả
-    const combined = [...filteredOnline, ...filteredMock];
-    return combined;
+    // Fallback: Lấy ra từ MOCK_MEMES
+    let filtered = [...MOCK_MEMES];
+    if (category && category !== 'Tất cả') {
+      filtered = filtered.filter((m) => m.category.toLowerCase() === category.toLowerCase());
+    }
+    if (query && query.trim() !== '') {
+      const lowerQ = query.toLowerCase().trim();
+      filtered = filtered.filter((m) => m.title.toLowerCase().includes(lowerQ));
+    }
+    return filtered;
   } catch (error) {
-    console.warn('[MemeApi] Search warning:', error.message);
+    console.warn('[MemeApi] Error search, fallback mock:', error.message);
     return MOCK_MEMES;
   }
 };

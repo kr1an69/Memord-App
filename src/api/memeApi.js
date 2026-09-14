@@ -3,6 +3,7 @@ import { SUBREDDIT_POOL } from '../constants/subreddits.js';
 
 const BASE_MEME_API = 'https://meme-api.com/gimme';
 
+// ------------------------------- TAnh -----------------------------------
 // Map các category sang subreddit tương ứng trên Reddit để fetch ảnh chuẩn chủ đề
 const SUBREDDIT_MAP = {
   Programmer: 'ProgrammerHumor',
@@ -93,50 +94,149 @@ export const fetchTrendingMemes = async (count = 50) => {
   }
 };
 
+// ------------------------------- Khoa -----------------------------------
+// Từ điển đồng nghĩa Anh - Việt phục vụ tìm kiếm thông minh
+const SYNONYM_MAP = {
+  cat: ['mèo', 'cat', 'meow', 'kitten', 'happy_cat', 'meow_funny'],
+  mèo: ['mèo', 'cat', 'meow', 'kitten', 'happy_cat', 'meow_funny'],
+  code: ['code', 'programmer', 'dev', 'bug', 'lập trình', 'client', 'boss', 'review', 'senior_dev', 'bug_hunter', 'code_architect', 'ui_ux_ninja'],
+  dev: ['code', 'programmer', 'dev', 'bug', 'lập trình', 'senior_dev', 'bug_hunter', 'code_architect'],
+  bug: ['bug', 'fix 1 bug', 'code', 'dev', 'lập trình', 'bug_hunter'],
+  lập trình: ['code', 'programmer', 'dev', 'bug', 'lập trình', 'senior_dev'],
+  programmer: ['code', 'programmer', 'dev', 'bug', 'lập trình', 'senior_dev', 'code_architect'],
+  anime: ['anime', 'wibu', 'otaku', 'gacha', 'ssr', 'main anime', 'otaku_king', 'anime_fan99'],
+  game: ['game', 'gaming', 'chơi game', 'gánh team', 'ranked', 'pro_gamer', 'ranked_warrior'],
+  gaming: ['game', 'gaming', 'chơi game', 'gánh team', 'ranked', 'pro_gamer', 'ranked_warrior'],
+  trending: ['trending', 'thứ 2', 'deadline', 'monday_blues', 'thịnh hành'],
+};
+
 /**
- * Search or filter Meme theo từ khóa và chủ đề cho SearchFilterScreen
+ * Kiểm tra xem một meme (title, category, author) có khớp với keyword tìm kiếm hay không
+ */
+const matchesQuery = (meme, queryStr) => {
+  if (!queryStr || queryStr.trim() === '') return true;
+  const q = queryStr.toLowerCase().trim();
+  const title = (meme.title || '').toLowerCase();
+  const category = (meme.category || '').toLowerCase();
+  const author = (meme.author || '').toLowerCase();
+
+  // 1. Phù hợp trực tiếp trong tiêu đề, thể loại hoặc tác giả
+  if (title.includes(q) || category.includes(q) || author.includes(q)) {
+    return true;
+  }
+
+  // 2. Phù hợp qua từ điển đồng nghĩa Anh - Việt
+  const synonyms = SYNONYM_MAP[q];
+  if (synonyms && Array.isArray(synonyms)) {
+    return synonyms.some(
+      (syn) => title.includes(syn) || category.includes(syn) || author.includes(syn)
+    );
+  }
+
+  // 3. Tách từ ghép để tìm từng từ nhỏ (ví dụ "mèo hài" -> tìm "mèo")
+  const words = q.split(/\s+/).filter((w) => w.length > 1);
+  if (words.length > 1) {
+    return words.some((w) => title.includes(w) || category.includes(w));
+  }
+
+  return false;
+};
+
+/**
+ * Search hoặc Filter Meme theo từ khóa và chủ đề cho SearchFilterScreen
  * @param {string} query Từ khóa tìm kiếm
- * @param {string} category Thể loại (Programmer | Anime | Cat | Gaming | Trending | Tất cả)
- * @returns {Promise<Array>} Danh sách meme 
+ * @param {string} category Thể loại (Programmer | Cat | Anime | Gaming | Trending | Tất cả)
+ * @returns {Promise<Array>} Danh sách meme phù hợp
  */
 export const searchMemes = async (query = '', category = 'Tất cả') => {
   try {
-    // Nếu có chọn thể loại cụ thể khác "Tất cả", thử fetch theo subreddit tương ứng
-    const targetSubreddit = SUBREDDIT_MAP[category];
-    if (targetSubreddit) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const cleanQuery = query ? query.trim() : '';
 
-      const response = await fetch(`${BASE_MEME_API}/${targetSubreddit}/25`, {
+    // 1. Xác định Subreddit mục tiêu dựa trên Category & Query
+    let targetSubreddits = [];
+
+    if (category && category !== 'Tất cả' && SUBREDDIT_MAP[category]) {
+      const mapped = SUBREDDIT_MAP[category];
+      targetSubreddits = Array.isArray(mapped) ? mapped : [mapped];
+    } else {
+      // Nếu là "Tất cả", thử phân tích từ khóa để chọn Subreddit phù hợp nhất
+      const qLower = cleanQuery.toLowerCase();
+      if (qLower.includes('cat') || qLower.includes('mèo')) {
+        targetSubreddits = ['catmemes', 'cats'];
+      } else if (qLower.includes('dog') || qLower.includes('chó')) {
+        targetSubreddits = ['dogmemes'];
+      } else if (qLower.includes('code') || qLower.includes('dev') || qLower.includes('bug') || qLower.includes('lập trình')) {
+        targetSubreddits = ['ProgrammerHumor', 'codingmemes'];
+      } else if (qLower.includes('anime') || qLower.includes('wibu')) {
+        targetSubreddits = ['Animemes', 'goodanimemes'];
+      } else if (qLower.includes('game') || qLower.includes('gaming')) {
+        targetSubreddits = ['wholesomememes', 'gamingmemes'];
+      } else {
+        targetSubreddits = ['memes', 'dankmemes', 'me_irl', 'funny'];
+      }
+    }
+
+    // 2. Fetch meme từ Online API
+    const subToFetch = targetSubreddits[Math.floor(Math.random() * targetSubreddits.length)] || 'memes';
+    let onlineMemes = [];
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+      const response = await fetch(`${BASE_MEME_API}/${subToFetch}/40?t=${Date.now()}`, {
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
 
       if (response.ok) {
         const data = await response.json();
-        if (data && Array.isArray(data.memes) && data.memes.length > 0) {
-          let list = data.memes.filter((m) => !m.nsfw).map((item, idx) => normalizeMeme(item, idx, category));
-          if (query && query.trim() !== '') {
-            const lowerQ = query.toLowerCase().trim();
-            list = list.filter((m) => m.title.toLowerCase().includes(lowerQ));
-          }
-          if (list.length > 0) return list;
+        if (data && Array.isArray(data.memes)) {
+          onlineMemes = data.memes
+            .filter((m) => !m.nsfw)
+            .map((item, idx) => normalizeMeme(item, idx, category !== 'Tất cả' ? category : subToFetch));
         }
       }
+    } catch (e) {
+      console.warn('[MemeApi] Online fetch failed, fallback to mock data:', e.message);
     }
 
-    // Fallback: Lấy ra từ MOCK_MEMES
-    let filtered = [...MOCK_MEMES];
-    if (category && category !== 'Tất cả') {
-      filtered = filtered.filter((m) => m.category.toLowerCase() === category.toLowerCase());
+    // 3. Lọc danh sách online theo Query
+    let filteredOnline = onlineMemes.filter((m) => matchesQuery(m, cleanQuery));
+
+    // 4. Lọc dữ liệu Mock chuẩn bị sẵn
+    let filteredMock = MOCK_MEMES.filter((m) => {
+      // Lọc theo Category (nếu chọn cụ thể)
+      if (category && category !== 'Tất cả') {
+        const catMatch = m.category.toLowerCase() === category.toLowerCase();
+        if (!catMatch) return false;
+      }
+      // Lọc theo Query
+      return matchesQuery(m, cleanQuery);
+    });
+
+    // 5. Kết hợp kết quả (Ưu tiên online, sau đó ghép mock để kết quả luôn phong phú)
+    const combined = [...filteredOnline, ...filteredMock];
+
+    // Lọc trùng lặp ID
+    const seenIds = new Set();
+    const finalResults = combined.filter((m) => {
+      if (!m.id || seenIds.has(m.id)) return false;
+      seenIds.add(m.id);
+      return true;
+    });
+
+    // 6. Nếu kết quả vẫn rỗng khi tìm kiếm cụ thể, trả về các meme cùng danh mục hoặc MOCK_MEMES ngẫu nhiên để không bị trống màn hình
+    if (finalResults.length === 0) {
+      if (category && category !== 'Tất cả') {
+        return MOCK_MEMES.filter((m) => m.category.toLowerCase() === category.toLowerCase());
+      }
+      return MOCK_MEMES;
     }
-    if (query && query.trim() !== '') {
-      const lowerQ = query.toLowerCase().trim();
-      filtered = filtered.filter((m) => m.title.toLowerCase().includes(lowerQ));
-    }
-    return filtered;
+
+    return finalResults;
   } catch (error) {
-    console.warn('[MemeApi] Error search, fallback mock:', error.message);
-    return MOCK_MEMES;
+    console.warn('[MemeApi] Lỗi tìm kiếm, trả về mock fallback:', error.message);
+    return MOCK_MEMES.filter((m) => matchesQuery(m, query));
   }
 };

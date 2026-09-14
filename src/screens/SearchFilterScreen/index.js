@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
@@ -12,47 +12,87 @@ import {
   Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { searchMemes } from '../../api/memeApi'; // Đảm bảo import đúng đường dẫn API
+import { searchMemes } from '../../api/memeApi';
 
-// Giữ nguyên danh mục theo code mẫu của Leader
+// Danh mục chuẩn theo quy ước dự án
 const CATEGORIES = ['Tất cả', 'Programmer', 'Cat', 'Anime', 'Gaming', 'Trending'];
 
+// Các gợi ý từ khóa phổ biến để bấm tìm nhanh
+const QUICK_SUGGESTIONS = [
+  { label: '🐱 Mèo', query: 'cat' },
+  { label: '💻 Code', query: 'code' },
+  { label: '🎮 Gaming', query: 'game' },
+  { label: '🌸 Anime', query: 'anime' },
+  { label: '🐛 Fix Bug', query: 'bug' },
+];
+
 export default function SearchFilterScreen({ navigation }) {
-  // --- PHẦN 1: GIỮ NGUYÊN HOÀN TOÀN CẤU TRÚC LOGIC CỦA LEADER ---
   const [keyword, setKeyword] = useState('');
   const [selectedTag, setSelectedTag] = useState('Tất cả');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const searchTimeoutRef = useRef(null);
 
-  const handleSearch = async (tag = selectedTag, text = keyword) => {
-    Keyboard.dismiss();
+  // Hàm thực hiện tìm kiếm chính
+  const handleSearch = useCallback(async (tag = selectedTag, text = keyword) => {
     setLoading(true);
     try {
       const data = await searchMemes(text, tag);
       setResults(data || []);
     } catch (error) {
-      console.error('Lỗi tìm kiếm:', error);
+      console.error('[SearchFilterScreen] Lỗi tìm kiếm:', error);
+      setResults([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedTag, keyword]);
 
+  // Tự động tìm kiếm khi đổi Tag danh mục
   useEffect(() => {
     handleSearch(selectedTag, keyword);
   }, [selectedTag]);
 
-  // --- PHẦN 2: TÙY CHỈNH UI (SỬ DỤNG LƯỚI 2 CỘT PINTEREST + DARK MODE) ---
+  // Debounce tìm kiếm tự động khi gõ chữ (sau 350ms)
+  const handleTextChange = (text) => {
+    setKeyword(text);
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    searchTimeoutRef.current = setTimeout(() => {
+      handleSearch(selectedTag, text);
+    }, 350);
+  };
+
+  // Nút submit tìm kiếm (khi bấm Nút Tìm hoặc Enter)
+  const onSubmitSearch = () => {
+    Keyboard.dismiss();
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    handleSearch(selectedTag, keyword);
+  };
+
+  // Nút xóa sạch từ khóa (Clear X)
+  const handleClearKeyword = () => {
+    setKeyword('');
+    handleSearch(selectedTag, '');
+  };
+
+  // Chọn từ khóa gợi ý nhanh
+  const handleSelectSuggestion = (query) => {
+    setKeyword(query);
+    handleSearch(selectedTag, query);
+  };
+
+  // Render thẻ Meme dạng 2 cột Pinterest
   const renderItem = ({ item }) => (
     <TouchableOpacity
       style={styles.memeCard}
       activeOpacity={0.8}
-      // Giữ nguyên tham số navigate của Leader: { meme: item }
       onPress={() => navigation.navigate('DetailScreen', { meme: item })}
     >
-      <Image 
-        source={{ uri: item.imageUrl }} 
-        style={styles.memeImage} 
-        resizeMode="cover" 
+      <Image
+        source={{ uri: item.imageUrl }}
+        style={styles.memeImage}
+        resizeMode="cover"
       />
       <View style={styles.memeInfo}>
         <Text style={styles.memeTitle} numberOfLines={2}>
@@ -68,30 +108,36 @@ export default function SearchFilterScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Thanh tìm kiếm */}
+      {/* 1. Thanh tìm kiếm với nút Xóa & Nút Tìm */}
       <View style={styles.searchBoxContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Tìm kiếm meme hài hước..."
-          placeholderTextColor="#64748B"
-          value={keyword}
-          onChangeText={setKeyword}
-          onSubmitEditing={() => handleSearch(selectedTag, keyword)}
-          returnKeyType="search"
-        />
-        <TouchableOpacity
-          style={styles.searchBtn}
-          onPress={() => handleSearch(selectedTag, keyword)}
-        >
+        <View style={styles.inputWrapper}>
+          <Text style={styles.searchIcon}>🔍</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Tìm theo từ khóa (Mèo, Code, Bug, Anime)..."
+            placeholderTextColor="#64748B"
+            value={keyword}
+            onChangeText={handleTextChange}
+            onSubmitEditing={onSubmitSearch}
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+          />
+          {keyword.length > 0 && (
+            <TouchableOpacity onPress={handleClearKeyword} style={styles.clearBtn}>
+              <Text style={styles.clearBtnText}>✕</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        <TouchableOpacity style={styles.searchBtn} onPress={onSubmitSearch} activeOpacity={0.7}>
           <Text style={styles.searchBtnText}>Tìm</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Dải Tag danh mục */}
+      {/* 2. Dải Tag danh mục nằm ngang */}
       <View style={styles.tagsWrapper}>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.tagsContainer}
         >
           {CATEGORIES.map((cat) => {
@@ -101,30 +147,57 @@ export default function SearchFilterScreen({ navigation }) {
                 key={cat}
                 style={[styles.tagPill, isActive && styles.tagPillActive]}
                 onPress={() => setSelectedTag(cat)}
+                activeOpacity={0.7}
               >
-                <Text style={[styles.tagText, isActive && styles.tagTextActive]}>{cat}</Text>
+                <Text style={[styles.tagText, isActive && styles.tagTextActive]}>
+                  {cat}
+                </Text>
               </TouchableOpacity>
             );
           })}
         </ScrollView>
       </View>
 
-      {/* Hiển thị danh sách kết quả dạng lưới 2 cột */}
+      {/* 3. Header thống kê số lượng kết quả */}
+      {!loading && results.length > 0 && (
+        <View style={styles.resultHeader}>
+          <Text style={styles.resultHeaderCount}>
+            Tìm thấy <Text style={styles.countHighlight}>{results.length}</Text> meme phù hợp
+          </Text>
+        </View>
+      )}
+
+      {/* 4. Danh sách kết quả hoặc Trạng thái Loading / Empty State */}
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#3B82F6" />
+          <Text style={styles.loadingText}>Đang tìm kiếm meme hot nhất...</Text>
         </View>
       ) : results.length === 0 ? (
         <View style={styles.center}>
-          <Text style={styles.emptyText}>Không tìm thấy meme phù hợp 😿</Text>
+          <Text style={styles.emptyEmoji}>😿</Text>
+          <Text style={styles.emptyTitle}>Chưa tìm thấy meme vừa ý?</Text>
+          <Text style={styles.emptySub}>Thử tìm kiếm với các từ khóa gợi ý bên dưới:</Text>
+
+          <View style={styles.suggestionsContainer}>
+            {QUICK_SUGGESTIONS.map((item) => (
+              <TouchableOpacity
+                key={item.query}
+                style={styles.suggestionChip}
+                onPress={() => handleSelectSuggestion(item.query)}
+              >
+                <Text style={styles.suggestionChipText}>{item.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       ) : (
         <FlatList
           data={results}
-          keyExtractor={(item, index) => item.id ? item.id.toString() : `search_${index}`}
+          keyExtractor={(item, index) => (item.id ? String(item.id) : `search_${index}`)}
           renderItem={renderItem}
-          numColumns={2} // Chia 2 cột phong cách Pinterest
-          columnWrapperStyle={styles.rowWrapper} // Khoảng cách giữa 2 cột
+          numColumns={2}
+          columnWrapperStyle={styles.rowWrapper}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         />
@@ -133,40 +206,60 @@ export default function SearchFilterScreen({ navigation }) {
   );
 }
 
-// --- PHẦN 3: STYLES (KẾT HỢP DARK MODE CỦA LEADER VÀ GRID CỦA AI) ---
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#0F172A', // Dark mode background
+    backgroundColor: '#0F172A',
   },
   searchBoxContainer: {
     flexDirection: 'row',
     paddingHorizontal: 16,
     paddingTop: 12,
     gap: 8,
+    alignItems: 'center',
+  },
+  inputWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+    height: 48,
+  },
+  searchIcon: {
+    fontSize: 16,
+    marginRight: 6,
   },
   input: {
     flex: 1,
-    height: 46,
-    backgroundColor: '#1E293B',
-    borderRadius: 10,
-    paddingHorizontal: 14,
+    height: '100%',
     color: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#334155',
     fontSize: 14,
   },
+  clearBtn: {
+    padding: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  clearBtnText: {
+    color: '#94A3B8',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
   searchBtn: {
-    height: 46,
-    paddingHorizontal: 18,
+    height: 48,
+    paddingHorizontal: 20,
     backgroundColor: '#3B82F6',
-    borderRadius: 10,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   searchBtnText: {
     color: '#FFFFFF',
-    fontWeight: '600',
+    fontWeight: '700',
     fontSize: 14,
   },
   tagsWrapper: {
@@ -177,8 +270,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tagPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: '#1E293B',
     borderWidth: 1,
@@ -190,35 +283,81 @@ const styles = StyleSheet.create({
   },
   tagText: {
     color: '#94A3B8',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '500',
   },
   tagTextActive: {
     color: '#FFFFFF',
     fontWeight: '700',
   },
+  resultHeader: {
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  resultHeaderCount: {
+    color: '#94A3B8',
+    fontSize: 13,
+  },
+  countHighlight: {
+    color: '#38BDF8',
+    fontWeight: '700',
+  },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
-  emptyText: {
+  loadingText: {
+    color: '#94A3B8',
+    marginTop: 12,
+    fontSize: 14,
+  },
+  emptyEmoji: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  emptyTitle: {
+    color: '#F8FAFC',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  emptySub: {
     color: '#64748B',
-    fontSize: 15,
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 20,
   },
-  
-  // -- STYLES DÀNH CHO LƯỚI MEME 2 CỘT (PINTEREST STYLE) --
+  suggestionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  suggestionChip: {
+    backgroundColor: '#1E293B',
+    borderColor: '#3B82F6',
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  suggestionChipText: {
+    color: '#38BDF8',
+    fontSize: 13,
+    fontWeight: '600',
+  },
   listContent: {
     paddingHorizontal: 16,
-    paddingBottom: 20,
+    paddingBottom: 24,
   },
   rowWrapper: {
-    justifyContent: 'space-between', // Chia đều 2 thẻ meme ra 2 bên
+    justifyContent: 'space-between',
   },
   memeCard: {
-    width: '48%', // Chiếm gần nửa màn hình
-    backgroundColor: '#1E293B', // Tone màu nền card theo Leader
+    width: '48%',
+    backgroundColor: '#1E293B',
     borderRadius: 12,
     marginBottom: 16,
     borderWidth: 1,
@@ -227,18 +366,18 @@ const styles = StyleSheet.create({
   },
   memeImage: {
     width: '100%',
-    height: 160, 
+    height: 160,
     backgroundColor: '#334155',
   },
   memeInfo: {
     padding: 10,
   },
   memeTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#F8FAFC',
     marginBottom: 8,
-    lineHeight: 20,
+    lineHeight: 18,
   },
   memeMeta: {
     flexDirection: 'row',

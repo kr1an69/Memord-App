@@ -1,25 +1,74 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import {
-  StyleSheet,
-  Text,
   View,
+  Text,
+  StyleSheet,
   FlatList,
   Image,
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { fetchTrendingMemes } from '../../api/memeApi';
 
+const { width } = Dimensions.get('window');
+const COLUMN_WIDTH = width / 2 - 16;
+
+// --------------------------------------------------
+// COMPONENT CARD RIÊNG BIỆT (Xử lý việc load từng ảnh)
+// --------------------------------------------------
+const MemeCard = memo(({ item, index, navigation }) => {
+  const [imgLoading, setImgLoading] = useState(true);
+  const imageHeight = index % 2 === 0 ? 220 : 160;
+
+  return (
+    <TouchableOpacity
+      style={[styles.cardContainer, { width: COLUMN_WIDTH }]}
+      activeOpacity={0.7}
+      onPress={() => navigation.navigate('DetailScreen', { meme: item })}
+    >
+      <View style={[styles.imageWrapper, { height: imageHeight }]}>
+        {/* Hiển thị xoay vòng nhỏ khi ảnh đang tải */}
+        {imgLoading && (
+          <ActivityIndicator style={styles.imageLoader} size="small" color="#94A3B8" />
+        )}
+        <Image
+          source={{ uri: item.imageUrl }}
+          style={[styles.memeImage, { height: imageHeight }]}
+          resizeMode="cover"
+          onLoadEnd={() => setImgLoading(false)} // Tắt loading khi tải xong
+        />
+      </View>
+      <View style={styles.cardContent}>
+        <Text style={styles.titleText} numberOfLines={2}>
+          {item.title}
+        </Text>
+        <View style={styles.cardFooter}>
+          <Text style={styles.authorText} numberOfLines={1}>
+            @{item.author}
+          </Text>
+          <Text style={styles.likesText}>❤️ {item.likes}</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+});
+
+// --------------------------------------------------
+// COMPONENT CHÍNH (HomeScreen)
+// --------------------------------------------------
 export default function HomeScreen({ navigation }) {
   const [memes, setMemes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false); // State mới cho Load More
 
+  // Load data ban đầu
   const loadMemes = async () => {
     try {
-      const data = await fetchTrendingMemes(20);
+      const data = await fetchTrendingMemes(50); // Thay 20 thành 50 theo yêu cầu
       setMemes(data);
     } catch (error) {
       console.error('Lỗi khi tải memes:', error);
@@ -38,27 +87,42 @@ export default function HomeScreen({ navigation }) {
     loadMemes();
   };
 
-  const renderMemeItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.card}
-      activeOpacity={0.8}
-      onPress={() => navigation.navigate('DetailScreen', { meme: item })}
-    >
-      <Image
-        source={{ uri: item.imageUrl }}
-        style={styles.cardImage}
-        resizeMode="cover"
-      />
-      <View style={styles.cardInfo}>
-        <Text style={styles.cardTitle} numberOfLines={2}>
-          {item.title}
-        </Text>
-        <View style={styles.cardMeta}>
-          <Text style={styles.cardAuthor}>@{item.author}</Text>
-          <Text style={styles.cardLikes}>❤️ {item.likes}</Text>
-        </View>
+  // Hàm xử lý cuộn xuống đáy (Load More / Cuộn vô hạn)
+  const handleLoadMore = async () => {
+    // Chặn gọi API liên tục nếu đang tải rồi
+    if (loadingMore || loading || refreshing) return;
+    
+    setLoadingMore(true);
+    try {
+      const newMemes = await fetchTrendingMemes(50); // Lấy thêm 50 meme nữa
+      
+      setMemes(prevMemes => {
+        // Loại bỏ các meme trùng id để tránh lặp
+        const uniqueNewMemes = newMemes.filter(
+          newMeme => !prevMemes.some(existingMeme => existingMeme.id === newMeme.id)
+        );
+        // Đắp data mới vô dưới đáy
+        return [...prevMemes, ...uniqueNewMemes];
+      });
+    } catch (error) {
+      console.error('Lỗi khi tải thêm memes:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  // Giao diện loading dưới đáy danh sách
+  const renderFooter = () => {
+    if (!loadingMore) return <View style={{ height: 20 }} />; // Đệm thêm một chút khoảng trống dưới đáy
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="large" color="#FF4500" />
       </View>
-    </TouchableOpacity>
+    );
+  };
+
+  const renderMemeItem = ({ item, index }) => (
+    <MemeCard item={item} index={index} navigation={navigation} />
   );
 
   return (
@@ -68,28 +132,42 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.headerSubtitle}>Lướt meme mới nhất mỗi ngày</Text>
       </View>
 
-      {loading ? (
-        <View style={styles.center}>
+      {loading && !refreshing ? (
+        <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FF4500" />
           <Text style={styles.loadingText}>Đang tải meme...</Text>
         </View>
       ) : (
         <FlatList
           data={memes}
-          keyExtractor={(item, index) => item.id || `meme_${index}`}
-          numColumns={2}
+          keyExtractor={(item, index) => item.id ? item.id.toString() : `meme_${index}`}
           renderItem={renderMemeItem}
+          numColumns={2}
           contentContainerStyle={styles.listContent}
+          columnWrapperStyle={styles.columnWrapper}
           showsVerticalScrollIndicator={false}
+          // --- THÊM PULL-TO-REFRESH ---
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF4500']} />
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh} 
+              colors={['#FF4500']} 
+              tintColor="#FF4500" 
+            />
           }
+          // --- THÊM LOAD MORE Ở ĐÂY ---
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={renderFooter}
         />
       )}
     </SafeAreaView>
   );
 }
 
+// --------------------------------------------------
+// STYLES
+// --------------------------------------------------
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -98,68 +176,86 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 8,
+    paddingBottom: 16,
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '800',
     color: '#F8FAFC',
+    letterSpacing: 0.5,
   },
   headerSubtitle: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#94A3B8',
-    marginTop: 2,
+    marginTop: 4,
+    fontWeight: '500',
   },
-  center: {
+  loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
     color: '#94A3B8',
-    marginTop: 10,
+    marginTop: 12,
     fontSize: 14,
+    fontWeight: '500',
   },
   listContent: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingBottom: 24,
   },
-  card: {
-    flex: 1,
-    margin: 6,
+  columnWrapper: {
+    justifyContent: 'space-between',
+  },
+  cardContainer: {
     backgroundColor: '#1E293B',
-    borderRadius: 12,
+    borderRadius: 16,
+    marginBottom: 12,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#334155',
   },
-  cardImage: {
+  imageWrapper: {
     width: '100%',
-    height: 180,
     backgroundColor: '#334155',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  cardInfo: {
-    padding: 10,
+  imageLoader: {
+    position: 'absolute', // Để loading spinner nằm chính giữa background
   },
-  cardTitle: {
+  memeImage: {
+    width: '100%',
+  },
+  cardContent: {
+    padding: 12,
+  },
+  titleText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#F1F5F9',
-    marginBottom: 6,
+    color: '#F8FAFC',
+    marginBottom: 8,
+    lineHeight: 18,
   },
-  cardMeta: {
+  cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  cardAuthor: {
+  authorText: {
     fontSize: 11,
     color: '#94A3B8',
-    maxWidth: '65%',
+    flex: 1,
+    paddingRight: 8,
+    fontWeight: '500',
   },
-  cardLikes: {
-    fontSize: 11,
+  likesText: {
+    fontSize: 12,
     color: '#F43F5E',
-    fontWeight: '600',
+    fontWeight: '700',
+  },
+  footerLoader: {
+    paddingVertical: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

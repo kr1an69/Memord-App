@@ -21,9 +21,8 @@ const COLUMN_WIDTH = width / 2 - 16;
 // --------------------------------------------------
 const MemeCard = memo(({ item, index, navigation }) => {
   const [imgLoading, setImgLoading] = useState(true);
-  
-  const heights = [180, 260, 220, 320];
-  const imageHeight = heights[index % 4];
+
+  const imageHeight = 220;
 
   return (
     <TouchableOpacity
@@ -36,7 +35,7 @@ const MemeCard = memo(({ item, index, navigation }) => {
         {imgLoading && (
           <ActivityIndicator style={styles.imageLoader} size="small" color="#94A3B8" />
         )}
-        
+
         {/* Bức ảnh chiếm trọn 100% không gian thẻ */}
         <Image
           source={{ uri: item.imageUrl }}
@@ -44,12 +43,12 @@ const MemeCard = memo(({ item, index, navigation }) => {
           resizeMode="cover"
           onLoadEnd={() => setImgLoading(false)}
         />
-        
+
         {/* Lớp kính râm mờ đè lên góc dưới ảnh chứa Title */}
         <View style={styles.textOverlay}>
-           <Text style={styles.memeTitle} numberOfLines={2}>
-             {item.title || 'Meme không tiêu đề'}
-           </Text>
+          <Text style={styles.memeTitle} numberOfLines={2}>
+            {item.title || 'Meme không tiêu đề'}
+          </Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -64,7 +63,7 @@ export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  
+
   const isFetchingRef = useRef(false);
 
   const loadMemes = async () => {
@@ -90,10 +89,10 @@ export default function HomeScreen({ navigation }) {
 
   const handleLoadMore = async () => {
     if (isFetchingRef.current || loading || refreshing) return;
-    
+
     isFetchingRef.current = true;
     setLoadingMore(true);
-    
+
     try {
       const newMemes = await fetchTrendingMemes(20);
       setMemes(prevMemes => {
@@ -149,11 +148,11 @@ export default function HomeScreen({ navigation }) {
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
           ListFooterComponent={renderFooter}
-          
-          initialNumToRender={8}      
-          maxToRenderPerBatch={6}     
-          windowSize={5}              
-          removeClippedSubviews={true} 
+
+          initialNumToRender={8}
+          maxToRenderPerBatch={6}
+          windowSize={5}
+          removeClippedSubviews={true}
         />
       )}
     </SafeAreaView>
@@ -171,22 +170,22 @@ const styles = StyleSheet.create({
   loadingText: { color: '#94A3B8', marginTop: 12, fontSize: 14, fontWeight: '500' },
   listContent: { paddingHorizontal: 12, paddingBottom: 24 },
   columnWrapper: { justifyContent: 'space-between' },
-  
-  cardContainer: { 
-    borderRadius: 16, 
-    marginBottom: 12, 
+
+  cardContainer: {
+    borderRadius: 16,
+    marginBottom: 12,
     overflow: 'hidden',
     backgroundColor: '#1E293B', // Giữ nền tối dự phòng lúc ảnh đang tải
   },
-  imageWrapper: { 
-    width: '100%', 
-    justifyContent: 'center', 
+  imageWrapper: {
+    width: '100%',
+    justifyContent: 'center',
     alignItems: 'center',
     position: 'relative', // Quan trọng: Bắt buộc để lớp kính đen dính vào ảnh
   },
   imageLoader: { position: 'absolute' },
   memeImage: { width: '100%' },
-  
+
   // Tấm kính đen mờ (Overlay)
   textOverlay: {
     position: 'absolute', // Ghim nó trôi nổi trên bề mặt ảnh
@@ -196,8 +195,8 @@ const styles = StyleSheet.create({
     padding: 12,
     backgroundColor: 'rgba(0, 0, 0, 0.6)', // Đen mờ 60% giúp chữ trắng luôn nổi bật
   },
-  memeTitle: { 
-    fontSize: 14, 
+  memeTitle: {
+    fontSize: 14,
     color: '#FFFFFF',     // Chữ trắng tinh
     fontWeight: '700',    // Đậm hơn một chút để dễ đọc trên nền ảnh
     lineHeight: 20,

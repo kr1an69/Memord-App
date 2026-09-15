@@ -90,13 +90,13 @@ const EmptyState = ({ onExplore }) => (
     <View style={styles.iconCircle}>
       <Ionicons name="bookmark-outline" size={52} color="#64748B" />
     </View>
-    <Text style={styles.emptyTitle}>Ban chua luu meme nao ca!</Text>
+    <Text style={styles.emptyTitle}>Bạn chưa lưu meme nào cả!</Text>
     <Text style={styles.emptyDesc}>
-      Hay kham pha them nhe{'\n'}Tim thay meme ua thich va bam Luu o trang Chi tiet.
+      Hãy khám phá và lưu memes mình yêu thích nhé
     </Text>
     <TouchableOpacity style={styles.exploreBtn} activeOpacity={0.8} onPress={onExplore}>
       <Ionicons name="sparkles" size={18} color="#FFFFFF" />
-      <Text style={styles.exploreBtnText}>Kham pha ngay</Text>
+      <Text style={styles.exploreBtnText}>Khám phá ngay</Text>
     </TouchableOpacity>
   </View>
 );
@@ -121,12 +121,12 @@ export default function FavoritesScreen({ navigation }) {
   const handleRemoveSingle = useCallback(
     (meme) => {
       Alert.alert(
-        'Go khoi Bo suu tap?',
-        `"${meme.title}" se bi xoa khoi danh sach yeu thich.`,
+        'Gỡ khỏi Bộ sưu tập?',
+        `"${meme.title}" sẽ bị xóa khỏi danh sách yêu thích.`,
         [
-          { text: 'Huy', style: 'cancel' },
+          { text: 'Hủy', style: 'cancel' },
           {
-            text: 'Xoa',
+            text: 'Xóa',
             style: 'destructive',
             onPress: () => removeFavorite(meme.id),
           },
@@ -157,21 +157,21 @@ export default function FavoritesScreen({ navigation }) {
       {/* ─── Header ─── */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>Bo suu tap</Text>
+          <Text style={styles.headerTitle}>Bộ sưu tập</Text>
           <Text style={styles.headerSubtitle}>
             {favorites.length > 0
-              ? `${favorites.length} meme da luu`
-              : 'Chua co meme nao'}
+              ? `${favorites.length} meme đã lưu`
+              : 'Chưa có meme nào'}
           </Text>
         </View>
         {favorites.length > 0 && (
           <TouchableOpacity
             style={styles.clearAllBtn}
             onPress={() =>
-              Alert.alert('Xoa tat ca?', 'Toan bo meme yeu thich se bi xoa.', [
-                { text: 'Huy', style: 'cancel' },
+              Alert.alert('Xóa tất cả?', 'Toàn bộ meme yêu thích sẽ bị xóa.', [
+                { text: 'Hủy', style: 'cancel' },
                 {
-                  text: 'Xoa tat ca',
+                  text: 'Xóa tất cả',
                   style: 'destructive',
                   onPress: () => favorites.forEach((m) => removeFavorite(m.id)),
                 },
@@ -179,7 +179,7 @@ export default function FavoritesScreen({ navigation }) {
             }
           >
             <Ionicons name="trash" size={16} color="#FF4500" />
-            <Text style={styles.clearAllText}>Xoa tat ca</Text>
+            <Text style={styles.clearAllText}>Xóa tất cả</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -196,7 +196,7 @@ export default function FavoritesScreen({ navigation }) {
           columnWrapperStyle={styles.columnWrapper}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          // Khong can pull-to-refresh vi day la local state
+        // Khong can pull-to-refresh vi day la local state
         />
       )}
     </SafeAreaView>

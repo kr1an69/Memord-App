@@ -23,8 +23,7 @@ const QUICK_SUGGESTIONS = [
   { label: '🐱 Con mèo', query: 'con mèo' },
   { label: '💻 Lập trình', query: 'lập trình' },
   { label: '🎮 Chơi game', query: 'chơi game' },
-  { label: '🦸 Siêu nhân', query: 'siêu nhân' },
-  { label: '⚡ Pokémon', query: 'pokemon' },
+  { label: '⚡ Pokemon', query: 'pokemon' },
   { label: '🦸‍♂️ Marvel', query: 'marvel' },
   { label: '💪 Gym', query: 'gym' },
   { label: '📱 iPhone', query: 'iphone' },
@@ -240,7 +239,10 @@ export default function SearchFilterScreen({ navigation }) {
           renderItem={renderItem}
           numColumns={2}
           columnWrapperStyle={styles.rowWrapper}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[
+            styles.listContent,
+            keyword.trim() !== '' && { paddingTop: 16 }
+          ]}
           showsVerticalScrollIndicator={false}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}

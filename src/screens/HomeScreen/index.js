@@ -125,7 +125,7 @@ export default function HomeScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>⚡ Memord Khám Phá</Text>
+        <Text style={styles.headerTitle}>MEMORD</Text>
       </View>
 
       {loading && !refreshing ? (

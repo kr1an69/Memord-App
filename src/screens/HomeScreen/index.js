@@ -17,7 +17,7 @@ const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = width / 2 - 16;
 
 // --------------------------------------------------
-// 1. COMPONENT CARD (Đã cập nhật UI theo ý đồng đội)
+// 1. COMPONENT CARD (HƯỚNG 3: Chữ chìm trong ảnh + Kính đen mờ)
 // --------------------------------------------------
 const MemeCard = memo(({ item, index, navigation }) => {
   const [imgLoading, setImgLoading] = useState(true);
@@ -32,29 +32,32 @@ const MemeCard = memo(({ item, index, navigation }) => {
       onPress={() => navigation.navigate('DetailScreen', { meme: item })}
     >
       <View style={[styles.imageWrapper, { height: imageHeight }]}>
+        {/* Vòng xoay lúc đang tải ảnh */}
         {imgLoading && (
           <ActivityIndicator style={styles.imageLoader} size="small" color="#94A3B8" />
         )}
+        
+        {/* Bức ảnh chiếm trọn 100% không gian thẻ */}
         <Image
           source={{ uri: item.imageUrl }}
           style={[styles.memeImage, { height: imageHeight }]}
           resizeMode="cover"
           onLoadEnd={() => setImgLoading(false)}
         />
-      </View>
-      
-      {/* Footer mới: Xóa 3 chấm, nền tối, thêm Title */}
-      <View style={styles.cardFooter}>
-         <Text style={styles.memeTitle} numberOfLines={2}>
-           {item.title || 'Meme không tiêu đề'}
-         </Text>
+        
+        {/* Lớp kính râm mờ đè lên góc dưới ảnh chứa Title */}
+        <View style={styles.textOverlay}>
+           <Text style={styles.memeTitle} numberOfLines={2}>
+             {item.title || 'Meme không tiêu đề'}
+           </Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
 });
 
 // --------------------------------------------------
-// 2. COMPONENT CHÍNH
+// 2. COMPONENT CHÍNH (Giữ nguyên 3 lớp tối ưu)
 // --------------------------------------------------
 export default function HomeScreen({ navigation }) {
   const [memes, setMemes] = useState([]);
@@ -158,7 +161,7 @@ export default function HomeScreen({ navigation }) {
 }
 
 // --------------------------------------------------
-// 3. STYLES (Đã tinh chỉnh lại màu nền và Title)
+// 3. STYLES (Cập nhật giao diện Hướng 3)
 // --------------------------------------------------
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#0F172A' },
@@ -169,29 +172,34 @@ const styles = StyleSheet.create({
   listContent: { paddingHorizontal: 12, paddingBottom: 24 },
   columnWrapper: { justifyContent: 'space-between' },
   
-  // Sửa nền card thành xám không gian thay vì trắng
   cardContainer: { 
-    backgroundColor: '#1E293B', 
     borderRadius: 16, 
     marginBottom: 12, 
-    overflow: 'hidden' 
+    overflow: 'hidden',
+    backgroundColor: '#1E293B', // Giữ nền tối dự phòng lúc ảnh đang tải
   },
-  imageWrapper: { width: '100%', backgroundColor: '#0F172A', justifyContent: 'center', alignItems: 'center' },
+  imageWrapper: { 
+    width: '100%', 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    position: 'relative', // Quan trọng: Bắt buộc để lớp kính đen dính vào ảnh
+  },
   imageLoader: { position: 'absolute' },
   memeImage: { width: '100%' },
   
-  // Footer mới: Padding gọn gàng, căn chữ qua trái
-  cardFooter: { 
-    paddingVertical: 12, 
-    paddingHorizontal: 12, 
-    justifyContent: 'center', 
-    alignItems: 'flex-start',
+  // Tấm kính đen mờ (Overlay)
+  textOverlay: {
+    position: 'absolute', // Ghim nó trôi nổi trên bề mặt ảnh
+    bottom: 0,            // Ép dính sát xuống đáy ảnh
+    left: 0,              // Ép dính lề trái
+    right: 0,             // Ép dính lề phải
+    padding: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)', // Đen mờ 60% giúp chữ trắng luôn nổi bật
   },
-  // Style cho Title mới thêm
   memeTitle: { 
     fontSize: 14, 
-    color: '#F1F5F9', // Màu chữ sáng để nổi trên nền tối
-    fontWeight: '600', 
+    color: '#FFFFFF',     // Chữ trắng tinh
+    fontWeight: '700',    // Đậm hơn một chút để dễ đọc trên nền ảnh
     lineHeight: 20,
   },
   footerLoader: { paddingVertical: 20, justifyContent: 'center', alignItems: 'center' },

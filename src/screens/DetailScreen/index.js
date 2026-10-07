@@ -19,7 +19,7 @@ import { useFavorites } from '../../utils/useFavorites';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// Import các icon tùy chỉnh từ thư mục images nội bộ
+/// Import các icon tùy chỉnh từ thư mục images nội bộ 
 const iconBack = require('./images/back.png');
 const iconLoveRed = require('./images/love.png');
 const iconLoveBlack = require('./images/love1.png');
